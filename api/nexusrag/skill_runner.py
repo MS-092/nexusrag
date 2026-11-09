@@ -91,6 +91,53 @@ class SkillRunner:
         text = providers.complete(config, f"{skill.instruction}\n\n{GROUNDING}", content, max_tokens=900)
         return {"answer": text, "citations": citations, "mode": "model", "skill": skill.name}
 
+    def status(self, skill: Skill, config: ProviderConfig | None) -> dict[str, Any]:
+        """/status: always the whole Brain, never narrowed by Scope."""
+        all_sources = self.store.list()
+        used_model = False
+        notebooks_out: list[dict[str, Any]] = []
+        for nb in (self.notebooks.list() if self.notebooks else []):
+            members = self.notebooks.members(nb["id"])
+            shareable = [m for m in members if not m["private"] and m["state"] == "ready"]
+            if config is not None and shareable:
+                # Only non-private excerpts ever leave the machine.
+                blocks = []
+                for n, m in enumerate(shareable[:STATUS_SOURCES], start=1):
+                    row = self.store.raw(m["id"])
+                    blocks.append(f"[{n}] {row['extracted_text'].strip()[:STATUS_CHARS]}")
+                content = f"Notebook: {nb['name']}\n\nPassages:\n" + "\n\n".join(blocks)
+                summary = providers.complete(config, f"{skill.instruction}\n\n{GROUNDING}", content, max_tokens=200).strip()
+                used_model = True
+            elif config is not None and members:
+                summary = "Only private sources here, so nothing is shared for a summary."
+            else:
+                topics = _topics(members)
+                count = len(members)
+                summary = (
+                    f"{count} source(s)" + (f", topics: {', '.join(topics)}." if topics else ".")
+                    if members
+                    else "No sources match yet."
+                )
+            notebooks_out.append(
+                {
+                    "id": nb["id"],
+                    "name": nb["name"],
+                    "member_count": len(members),
+                    "sources": [{"name": m["name"], "private": m["private"]} for m in members],
+                    "summary": summary,
+                    "activity": self.activity.list(nb["id"], STATUS_ACTIVITY) if self.activity else [],
+                }
+            )
+        brain = {"sources": len(all_sources), "private": sum(1 for s in all_sources if s["private"])}
+        activity = self.activity.list(None, STATUS_ACTIVITY) if self.activity else []
+        return {
+            "answer": _render(brain, notebooks_out, activity),
+            "citations": [],
+            "mode": "model" if used_model else "extractive",
+            "skill": skill.name,
+            "status": {"brain": brain, "notebooks": notebooks_out, "activity": activity},
+        }
+
 
 def _extractive(passages: list[dict[str, Any]], citations: list[dict[str, Any]]) -> str:
     lines = ["From your Sources:"]
@@ -100,7 +147,7 @@ def _extractive(passages: list[dict[str, Any]], citations: list[dict[str, Any]])
     return "\n".join(lines)
 
 
-# ---- /status: always the whole Brain, never narrowed by Scope
+# ---- /status helpers
 def _topics(members: list[dict[str, Any]], limit: int = 4) -> list[str]:
     counts: dict[str, int] = {}
     for m in members:
@@ -126,53 +173,3 @@ def _render(brain: dict[str, Any], notebooks: list[dict[str, Any]], activity: li
         lines.append("")
         lines.append("Recent activity: " + "; ".join(f"{a['kind']} {a['source_name']}" for a in activity))
     return "\n".join(lines)
-
-
-def _status(self: SkillRunner, skill: Skill, config: ProviderConfig | None) -> dict[str, Any]:
-    all_sources = self.store.list()
-    used_model = False
-    notebooks_out: list[dict[str, Any]] = []
-    for nb in (self.notebooks.list() if self.notebooks else []):
-        members = self.notebooks.members(nb["id"])
-        shareable = [m for m in members if not m["private"] and m["state"] == "ready"]
-        if config is not None and shareable:
-            # Only non-private excerpts ever leave the machine.
-            blocks = []
-            for n, m in enumerate(shareable[:STATUS_SOURCES], start=1):
-                row = self.store.raw(m["id"])
-                blocks.append(f"[{n}] {row['extracted_text'].strip()[:STATUS_CHARS]}")
-            content = f"Notebook: {nb['name']}\n\nPassages:\n" + "\n\n".join(blocks)
-            summary = providers.complete(config, f"{skill.instruction}\n\n{GROUNDING}", content, max_tokens=200).strip()
-            used_model = True
-        elif config is not None and members:
-            summary = "Only private sources here, so nothing is shared for a summary."
-        else:
-            topics = _topics(members)
-            count = len(members)
-            summary = (
-                f"{count} source(s)" + (f", topics: {', '.join(topics)}." if topics else ".")
-                if members
-                else "No sources match yet."
-            )
-        notebooks_out.append(
-            {
-                "id": nb["id"],
-                "name": nb["name"],
-                "member_count": len(members),
-                "sources": [{"name": m["name"], "private": m["private"]} for m in members],
-                "summary": summary,
-                "activity": self.activity.list(nb["id"], STATUS_ACTIVITY) if self.activity else [],
-            }
-        )
-    brain = {"sources": len(all_sources), "private": sum(1 for s in all_sources if s["private"])}
-    activity = self.activity.list(None, STATUS_ACTIVITY) if self.activity else []
-    return {
-        "answer": _render(brain, notebooks_out, activity),
-        "citations": [],
-        "mode": "model" if used_model else "extractive",
-        "skill": skill.name,
-        "status": {"brain": brain, "notebooks": notebooks_out, "activity": activity},
-    }
-
-
-SkillRunner.status = _status  # type: ignore[attr-defined]
