@@ -78,6 +78,7 @@ def delete_source(request: Request, source_id: str) -> Response:
         raise HTTPException(404, "Source not found")
     state.index.delete_source(source_id)
     state.store.delete(source_id)
+    state.notebooks.forget_source(source_id)
     # Extracted text must not outlive its Source, unless an identical file is still in the Brain.
     if not state.store.hash_in_use(row["content_hash"], row["kind"]):
         state.store.cache_purge(row["content_hash"])

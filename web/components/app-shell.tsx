@@ -3,12 +3,14 @@
 import { useState } from "react";
 import { BrainView } from "@/components/brain-view";
 import { ChatView } from "@/components/chat-view";
+import { NotebooksView } from "@/components/notebooks-view";
 import { SettingsDialog } from "@/components/settings-dialog";
 
-type Tab = "sources" | "chat";
+type Tab = "sources" | "notebooks" | "chat";
 
 const TABS: { id: Tab; label: string }[] = [
   { id: "sources", label: "Sources" },
+  { id: "notebooks", label: "Notebooks" },
   { id: "chat", label: "Chat" },
 ];
 
@@ -39,7 +41,13 @@ export function AppShell() {
         </nav>
         <SettingsDialog />
       </div>
-      {tab === "sources" ? <BrainView /> : <ChatView />}
+      {tab === "sources" ? (
+        <BrainView />
+      ) : tab === "notebooks" ? (
+        <NotebooksView />
+      ) : (
+        <ChatView />
+      )}
     </div>
   );
 }

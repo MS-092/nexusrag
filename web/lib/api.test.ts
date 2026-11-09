@@ -2,12 +2,17 @@ import { describe, expect, test } from "bun:test";
 import {
   askBrain,
   captionSource,
+  createNotebook,
   createNote,
+  deleteNotebook,
   deleteSource,
   getNote,
+  listNotebooks,
   listSources,
+  pinSource,
   retrySource,
   setPrivate,
+  unpinSource,
   updateNote,
   uploadSource,
   type Source,
@@ -314,5 +319,63 @@ describe("private sources", () => {
     expect(seen.url).toBe("http://api.test/sources/s1");
     expect(seen.method).toBe("PATCH");
     expect(JSON.parse(seen.body ?? "{}")).toEqual({ private: true });
+  });
+});
+
+describe("notebooks", () => {
+  const nb = { id: "n1", name: "Finance", rules: [], member_count: 0 };
+
+  test("createNotebook posts name and rules", async () => {
+    const seen: { url?: string; method?: string; body?: string } = {};
+    const f = (async (u: string, init?: RequestInit) => {
+      seen.url = u;
+      seen.method = init?.method;
+      seen.body = init?.body as string;
+      return json({ id: "n1", name: "Finance", rules: [], pins: [] }, 201);
+    }) as unknown as typeof fetch;
+    await createNotebook(
+      "Finance",
+      [{ type: "tag", value: "billing" }],
+      "http://api.test",
+      f,
+    );
+    expect(seen.url).toBe("http://api.test/notebooks");
+    expect(seen.method).toBe("POST");
+    expect(JSON.parse(seen.body ?? "{}")).toEqual({
+      name: "Finance",
+      rules: [{ type: "tag", value: "billing" }],
+    });
+  });
+
+  test("listNotebooks returns member counts", async () => {
+    const f = (async () => json([nb])) as unknown as typeof fetch;
+    expect(await listNotebooks("http://api.test", f)).toEqual([nb]);
+  });
+
+  test("pinSource puts a pin mode and unpinSource deletes it", async () => {
+    const calls: { url: string; method?: string; body?: string }[] = [];
+    const f = (async (u: string, init?: RequestInit) => {
+      calls.push({ url: u, method: init?.method, body: init?.body as string });
+      return init?.method === "DELETE"
+        ? new Response(null, { status: 204 })
+        : json({ notebook_id: "n1", source_id: "s1", mode: "out" });
+    }) as unknown as typeof fetch;
+    await pinSource("n1", "s1", "out", "http://api.test", f);
+    await unpinSource("n1", "s1", "http://api.test", f);
+    expect(calls[0]).toEqual({
+      url: "http://api.test/notebooks/n1/pins/s1",
+      method: "PUT",
+      body: JSON.stringify({ mode: "out" }),
+    });
+    expect(calls[1].url).toBe("http://api.test/notebooks/n1/pins/s1");
+    expect(calls[1].method).toBe("DELETE");
+  });
+
+  test("deleteNotebook tolerates 204", async () => {
+    const f = (async () =>
+      new Response(null, { status: 204 })) as unknown as typeof fetch;
+    await expect(
+      deleteNotebook("n1", "http://api.test", f),
+    ).resolves.toBeUndefined();
   });
 });

@@ -12,6 +12,8 @@ import {
 
 interface ConfirmDeleteProps {
   name: string | null;
+  title?: string;
+  description?: string;
   busy: boolean;
   error: string | null;
   onCancel: () => void;
@@ -20,6 +22,8 @@ interface ConfirmDeleteProps {
 
 export function ConfirmDelete({
   name,
+  title = "Delete this Source?",
+  description,
   busy,
   error,
   onCancel,
@@ -32,10 +36,10 @@ export function ConfirmDelete({
     >
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Delete this Source?</DialogTitle>
+          <DialogTitle>{title}</DialogTitle>
           <DialogDescription>
-            {name} will be removed from your Brain, every Notebook and search.
-            This cannot be undone.
+            {description ??
+              `${name} will be removed from your Brain, every Notebook and search. This cannot be undone.`}
           </DialogDescription>
         </DialogHeader>
         {error ? (

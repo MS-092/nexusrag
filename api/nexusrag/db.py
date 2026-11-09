@@ -25,6 +25,19 @@ CREATE TABLE IF NOT EXISTS sources (
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL
 );
+CREATE TABLE IF NOT EXISTS notebooks (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    rules TEXT NOT NULL DEFAULT '[]',
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS pins (
+    notebook_id TEXT NOT NULL,
+    source_id TEXT NOT NULL,
+    mode TEXT NOT NULL CHECK (mode IN ('in', 'out')),
+    PRIMARY KEY (notebook_id, source_id)
+);
 CREATE TABLE IF NOT EXISTS extraction_cache (
     content_hash TEXT NOT NULL,
     kind TEXT NOT NULL,

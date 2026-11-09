@@ -1,4 +1,5 @@
 import { API_URL } from "@/lib/health";
+import type { Reason, Rule } from "@/lib/notebooks";
 import {
   DEFAULT_SETTINGS,
   providerHeaders,
@@ -221,6 +222,125 @@ export function askBrain(
       },
       body: JSON.stringify({ question }),
     },
+    baseUrl,
+    fetcher,
+  );
+}
+
+export interface NotebookSummary {
+  id: string;
+  name: string;
+  rules: Rule[];
+  member_count: number;
+}
+
+export interface Pin {
+  source_id: string;
+  mode: "in" | "out";
+}
+
+export interface Notebook {
+  id: string;
+  name: string;
+  rules: Rule[];
+  pins: Pin[];
+}
+
+export type NotebookMember = Source & { reasons: Reason[] };
+
+export function listNotebooks(
+  baseUrl = API_URL,
+  fetcher: typeof fetch = fetch,
+) {
+  return request<NotebookSummary[]>("/notebooks", undefined, baseUrl, fetcher);
+}
+
+export function getNotebook(
+  id: string,
+  baseUrl = API_URL,
+  fetcher: typeof fetch = fetch,
+) {
+  return request<Notebook>(`/notebooks/${id}`, undefined, baseUrl, fetcher);
+}
+
+export function createNotebook(
+  name: string,
+  rules: Rule[],
+  baseUrl = API_URL,
+  fetcher: typeof fetch = fetch,
+) {
+  return request<Notebook>(
+    "/notebooks",
+    jsonInit("POST", { name, rules }),
+    baseUrl,
+    fetcher,
+  );
+}
+
+export function updateNotebook(
+  id: string,
+  patch: { name?: string; rules?: Rule[] },
+  baseUrl = API_URL,
+  fetcher: typeof fetch = fetch,
+) {
+  return request<Notebook>(
+    `/notebooks/${id}`,
+    jsonInit("PATCH", patch),
+    baseUrl,
+    fetcher,
+  );
+}
+
+export function deleteNotebook(
+  id: string,
+  baseUrl = API_URL,
+  fetcher: typeof fetch = fetch,
+) {
+  return request<void>(
+    `/notebooks/${id}`,
+    { method: "DELETE" },
+    baseUrl,
+    fetcher,
+  );
+}
+
+export function notebookSources(
+  id: string,
+  baseUrl = API_URL,
+  fetcher: typeof fetch = fetch,
+) {
+  return request<NotebookMember[]>(
+    `/notebooks/${id}/sources`,
+    undefined,
+    baseUrl,
+    fetcher,
+  );
+}
+
+export function pinSource(
+  id: string,
+  sourceId: string,
+  mode: "in" | "out",
+  baseUrl = API_URL,
+  fetcher: typeof fetch = fetch,
+) {
+  return request<{ notebook_id: string; source_id: string; mode: string }>(
+    `/notebooks/${id}/pins/${sourceId}`,
+    jsonInit("PUT", { mode }),
+    baseUrl,
+    fetcher,
+  );
+}
+
+export function unpinSource(
+  id: string,
+  sourceId: string,
+  baseUrl = API_URL,
+  fetcher: typeof fetch = fetch,
+) {
+  return request<void>(
+    `/notebooks/${id}/pins/${sourceId}`,
+    { method: "DELETE" },
     baseUrl,
     fetcher,
   );
