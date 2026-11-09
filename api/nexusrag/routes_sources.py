@@ -7,6 +7,7 @@ from pathlib import Path
 from fastapi import APIRouter, File, HTTPException, Request, Response, UploadFile
 
 from nexusrag import extractors
+from nexusrag.routes_common import provider_config
 
 router = APIRouter()
 
@@ -18,6 +19,7 @@ def _safe_name(filename: str | None) -> str:
 @router.post("/sources", status_code=202)
 async def upload_source(request: Request, file: UploadFile = File(...)) -> dict:
     state = request.app.state
+    provider = provider_config(request)
     name = _safe_name(file.filename)
     kind = extractors.kind_for(name)
     if kind is None:
@@ -37,7 +39,7 @@ async def upload_source(request: Request, file: UploadFile = File(...)) -> dict:
     path.write_bytes(data)
     state.store.update(source["id"], file_path=str(path))
 
-    state.jobs.submit(lambda sid=source["id"]: state.pipeline.process(sid))
+    state.jobs.submit(lambda sid=source["id"]: state.pipeline.process(sid, provider))
     return source  # snapshot taken before the job starts: state == processing
 
 
@@ -75,6 +77,22 @@ def delete_source(request: Request, source_id: str) -> Response:
     state.store.delete(source_id)
     # Extracted text must not outlive its Source, unless an identical file is still in the Brain.
     if not state.store.hash_in_use(row["content_hash"], row["kind"]):
-        state.store.cache_delete(row["content_hash"], row["kind"])
+        state.store.cache_purge(row["content_hash"])
     shutil.rmtree(state.settings.data_dir / "files" / source_id, ignore_errors=True)
     return Response(status_code=204)
+
+
+@router.post("/sources/{source_id}/caption", status_code=202)
+def caption_source(request: Request, source_id: str) -> dict:
+    state = request.app.state
+    row = state.store.raw(source_id)
+    if row is None:
+        raise HTTPException(404, "Source not found")
+    if row["kind"] != "image":
+        raise HTTPException(400, "Only images can be captioned.")
+    provider = provider_config(request)
+    if provider is None:
+        raise HTTPException(400, "An AI provider is required to caption an image.")
+    state.store.update(source_id, state="processing", error=None)
+    state.jobs.submit(lambda: state.pipeline.process(source_id, provider))
+    return state.store.get(source_id)  # type: ignore[return-value]

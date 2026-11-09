@@ -76,6 +76,10 @@ class SourceStore:
             "DELETE FROM extraction_cache WHERE content_hash = ? AND kind = ?", (content_hash, kind)
         )
 
+    def cache_purge(self, content_hash: str) -> None:
+        """Drop every cached extraction (OCR text, captions) for this content."""
+        self.db.execute("DELETE FROM extraction_cache WHERE content_hash = ?", (content_hash,))
+
     # extraction cache (keyed by content hash + kind)
     def cache_get(self, content_hash: str, kind: str) -> list[dict[str, Any]] | None:
         row = self.db.one(

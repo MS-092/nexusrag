@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import {
   askBrain,
+  captionSource,
   createNote,
   deleteSource,
   getNote,
@@ -222,5 +223,52 @@ describe("notes", () => {
     await expect(
       updateNote("x", "t", "c", "http://api.test", f),
     ).rejects.toThrow("Note not found");
+  });
+});
+
+describe("captions and provider headers on upload", () => {
+  const withKey = {
+    provider: "openai" as const,
+    baseUrl: "",
+    model: "gpt-x",
+    key: "sk-1",
+  };
+
+  test("uploadSource forwards provider headers so images can be captioned", async () => {
+    const seen: { headers?: Record<string, string> } = {};
+    const f = (async (_u: string, init?: RequestInit) => {
+      seen.headers = init?.headers as Record<string, string>;
+      return json(source, 202);
+    }) as unknown as typeof fetch;
+    await uploadSource(new File(["x"], "a.png"), "http://api.test", f, withKey);
+    expect(seen.headers?.["X-Provider-Key"]).toBe("sk-1");
+  });
+
+  test("uploadSource sends no provider headers by default", async () => {
+    const seen: { headers?: unknown } = {};
+    const f = (async (_u: string, init?: RequestInit) => {
+      seen.headers = init?.headers;
+      return json(source, 202);
+    }) as unknown as typeof fetch;
+    await uploadSource(new File(["x"], "a.png"), "http://api.test", f);
+    expect(seen.headers).toEqual({});
+  });
+
+  test("captionSource posts to the caption endpoint with provider headers", async () => {
+    const seen: {
+      url?: string;
+      method?: string;
+      headers?: Record<string, string>;
+    } = {};
+    const f = (async (u: string, init?: RequestInit) => {
+      seen.url = u;
+      seen.method = init?.method;
+      seen.headers = init?.headers as Record<string, string>;
+      return json(source, 202);
+    }) as unknown as typeof fetch;
+    await captionSource("s1", withKey, "http://api.test", f);
+    expect(seen.url).toBe("http://api.test/sources/s1/caption");
+    expect(seen.method).toBe("POST");
+    expect(seen.headers?.["X-Provider"]).toBe("openai");
   });
 });

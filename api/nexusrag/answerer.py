@@ -4,7 +4,9 @@ import math
 import re
 from typing import Any
 
-from nexusrag import providers
+from pathlib import Path
+
+from nexusrag import captioner, providers
 from nexusrag.embedder import Embedder
 from nexusrag.index import Index
 from nexusrag.providers import ProviderConfig
@@ -15,6 +17,7 @@ TOP_K = 4
 # relevant ones start near 0.59. The eval (ticket 17) re-checks this.
 MIN_SIMILARITY = 0.55
 QUOTE_CHARS = 320
+MAX_IMAGES = 2
 NO_RESULTS = "There is not enough information in your Sources to answer that."
 
 STOPWORDS = {
@@ -60,6 +63,20 @@ class Answerer:
                 kept.append(hit)
         return kept
 
+    def _image_blocks(self, citations: list[dict[str, Any]]) -> list[dict]:
+        """Original images for the top image hits, so the model can look at the real chart."""
+        blocks: list[dict] = []
+        seen: set[str] = set()
+        for c in citations:
+            if c["kind"] != "image" or c["source_id"] in seen or len(blocks) >= MAX_IMAGES:
+                continue
+            row = self.store.raw(c["source_id"])
+            if row and row["file_path"]:
+                seen.add(c["source_id"])
+                blocks.append({"type": "text", "text": f"Image for passage [{c['n']}]:"})
+                blocks.append(captioner.image_block(Path(row["file_path"])))
+        return blocks
+
     def _citations(self, hits: list[dict[str, Any]]) -> list[dict[str, Any]]:
         out = []
         for n, hit in enumerate(hits, start=1):
@@ -88,7 +105,11 @@ class Answerer:
             f"[{c['n']}] {c['source_name']} {_where(c['position'])}\n{hit['text']}"
             for c, hit in zip(citations, hits)
         )
-        text = providers.complete(config, SYSTEM_PROMPT, f"Question: {question}\n\nPassages:\n{passages}")
+        content: providers.Content = f"Question: {question}\n\nPassages:\n{passages}"
+        images = self._image_blocks(citations)
+        if images:
+            content = [{"type": "text", "text": content}, *images]
+        text = providers.complete(config, SYSTEM_PROMPT, content)
         return {"answer": text, "citations": citations, "mode": "model"}
 
 

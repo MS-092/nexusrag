@@ -8,6 +8,7 @@ import { SourceRow } from "@/components/source-row";
 import { Button } from "@/components/ui/button";
 import { UploadZone } from "@/components/upload-zone";
 import {
+  captionSource,
   deleteSource,
   listSources,
   retrySource,
@@ -15,6 +16,7 @@ import {
   type Source,
 } from "@/lib/api";
 import { hasPending } from "@/lib/sources";
+import { useSettings } from "@/lib/use-settings";
 
 const POLL_MS = 1500;
 
@@ -26,6 +28,7 @@ function messageOf(err: unknown): string {
 }
 
 export function BrainView() {
+  const settings = useSettings();
   const [sources, setSources] = useState<Source[]>([]);
   const [load, setLoad] = useState<Load>({ kind: "loading" });
   const [uploading, setUploading] = useState(false);
@@ -75,7 +78,7 @@ export function BrainView() {
     const failures: string[] = [];
     for (const file of files) {
       try {
-        await uploadSource(file);
+        await uploadSource(file, undefined, undefined, settings);
       } catch (err) {
         failures.push(`${file.name}: ${messageOf(err)}`);
       }
@@ -94,6 +97,16 @@ export function BrainView() {
       setActionError(`${source.name}: ${messageOf(err)}`);
     }
     setRetrying(null);
+    await refresh();
+  }
+
+  async function onCaption(source: Source) {
+    setActionError(null);
+    try {
+      await captionSource(source.id, settings);
+    } catch (err) {
+      setActionError(`${source.name}: ${messageOf(err)}`);
+    }
     await refresh();
   }
 
@@ -154,6 +167,8 @@ export function BrainView() {
                 onOpen={(src) => setOpen(src.id)}
                 onRetry={(src) => void onRetry(src)}
                 onEdit={(src) => setNoteId(src.id)}
+                canCaption={settings.provider !== "none"}
+                onCaption={(src) => void onCaption(src)}
                 onDelete={(src) => {
                   setDeleteError(null);
                   setToDelete(src);

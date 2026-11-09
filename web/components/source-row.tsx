@@ -12,6 +12,8 @@ interface SourceRowProps {
   onRetry: (source: Source) => void;
   onDelete: (source: Source) => void;
   onEdit: (source: Source) => void;
+  onCaption: (source: Source) => void;
+  canCaption: boolean;
 }
 
 export function SourceRow({
@@ -21,6 +23,8 @@ export function SourceRow({
   onRetry,
   onDelete,
   onEdit,
+  onCaption,
+  canCaption,
 }: SourceRowProps) {
   return (
     <li className="flex items-center gap-3 rounded-xl border border-border px-4 py-3">
@@ -36,6 +40,7 @@ export function SourceRow({
           {source.kind.toUpperCase()} · {formatSize(source.size)}
           {source.state === "ready" ? ` · ${source.chunk_count} chunks` : ""}
           {source.cache_hit ? " · from cache" : ""}
+          {source.captioned ? " · captioned" : ""}
         </span>
         {source.tags.length > 0 ? (
           <span className="mt-1 flex flex-wrap gap-1">
@@ -73,6 +78,24 @@ export function SourceRow({
           className="motion-safe:active:scale-[0.97] motion-safe:transition-transform"
         >
           {retrying ? "Retrying…" : "Retry"}
+        </Button>
+      ) : null}
+      {source.kind === "image" &&
+      source.state === "ready" &&
+      !source.captioned ? (
+        <Button
+          size="sm"
+          variant="outline"
+          disabled={!canCaption}
+          title={
+            canCaption
+              ? undefined
+              : "Choose a provider in Settings to caption images"
+          }
+          onClick={() => onCaption(source)}
+          className="motion-safe:active:scale-[0.97] motion-safe:transition-transform"
+        >
+          Add caption
         </Button>
       ) : null}
       {source.kind === "note" ? (

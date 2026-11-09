@@ -1,5 +1,9 @@
 import { API_URL } from "@/lib/health";
-import { providerHeaders, type Settings } from "@/lib/settings";
+import {
+  DEFAULT_SETTINGS,
+  providerHeaders,
+  type Settings,
+} from "@/lib/settings";
 
 export type SourceState = "processing" | "ready" | "failed";
 export type SourceKind = "pdf" | "image" | "spreadsheet" | "note";
@@ -65,12 +69,28 @@ export function uploadSource(
   file: File,
   baseUrl = API_URL,
   fetcher: typeof fetch = fetch,
+  settings: Settings = DEFAULT_SETTINGS,
 ) {
   const form = new FormData();
   form.append("file", file);
+  // Headers (never the body) carry the key so an image can be captioned during ingestion.
   return request<Source>(
     "/sources",
-    { method: "POST", body: form },
+    { method: "POST", body: form, headers: providerHeaders(settings) },
+    baseUrl,
+    fetcher,
+  );
+}
+
+export function captionSource(
+  id: string,
+  settings: Settings,
+  baseUrl = API_URL,
+  fetcher: typeof fetch = fetch,
+) {
+  return request<Source>(
+    `/sources/${id}/caption`,
+    { method: "POST", headers: providerHeaders(settings) },
     baseUrl,
     fetcher,
   );

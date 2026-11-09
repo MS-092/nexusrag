@@ -62,9 +62,35 @@ def _host(base: str | None) -> str:
     return urlparse(base or "").netloc or "the provider"
 
 
-def complete(config: ProviderConfig, system: str, user_content: str, max_tokens: int = 700) -> str:
+Content = str | list[dict]  # blocks: {"type":"text","text"} | {"type":"image","media_type","data"}
+
+
+def _wire(provider: str, content: Content) -> str | list[dict]:
+    """Convert NexusRAG's neutral content blocks to the provider's wire format."""
+    if isinstance(content, str):
+        return content
+    out: list[dict] = []
+    for block in content:
+        if block["type"] == "text":
+            out.append({"type": "text", "text": block["text"]})
+        elif provider == "anthropic":
+            out.append(
+                {
+                    "type": "image",
+                    "source": {"type": "base64", "media_type": block["media_type"], "data": block["data"]},
+                }
+            )
+        else:
+            out.append(
+                {"type": "image_url", "image_url": {"url": f"data:{block['media_type']};base64,{block['data']}"}}
+            )
+    return out
+
+
+def complete(config: ProviderConfig, system: str, user_content: Content, max_tokens: int = 700) -> str:
     """One chat completion. Raises ProviderError with a user-safe message."""
     assert config.base_url
+    user_content = _wire(config.provider, user_content)
     try:
         if config.provider == "anthropic":
             res = httpx.post(
