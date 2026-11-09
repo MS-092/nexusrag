@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.trustedhost import TrustedHostMiddleware
 
 from nexusrag.config import Settings
 from nexusrag.health import health_report
@@ -49,8 +50,10 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         CORSMiddleware,
         allow_origins=[settings.web_origin],
         allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE"],
-        allow_headers=["*"],
+        allow_headers=["Content-Type", "X-Provider", "X-Provider-Model", "X-Provider-Key", "X-Provider-Base-Url"],
     )
+    # Blocks DNS rebinding: a page on another hostname cannot reach this API even if it resolves to 127.0.0.1.
+    app.add_middleware(TrustedHostMiddleware, allowed_hosts=["localhost", "127.0.0.1"])
 
     app.include_router(sources_router)
     app.include_router(chat_router)

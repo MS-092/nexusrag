@@ -130,7 +130,7 @@ def custom_client(tmp_path, data_dir, settings):
         "Answer the question using the passages, but write the entire answer in CAPITAL LETTERS.\n"
     )
     app = create_app(Settings(data_dir=data_dir, web_origin=settings.web_origin, skills_dir=skills))
-    with TestClient(app) as c:
+    with TestClient(app, base_url="http://localhost") as c:
         yield c, app
 
 

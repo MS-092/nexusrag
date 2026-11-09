@@ -41,3 +41,7 @@ next-env.d.ts
 
 # local Claude Code permissions (personal, never published)
 .claude/settings.local.json
+
+# other local tooling
+.claude/
+.qodo/

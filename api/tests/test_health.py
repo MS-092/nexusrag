@@ -19,6 +19,12 @@ def test_cors_allows_only_local_web_origin(client):
     assert "access-control-allow-origin" not in bad.headers
 
 
+def test_rejects_foreign_host_header(client):
+    # DNS rebinding: attacker hostname resolving to 127.0.0.1 must not reach the API.
+    assert client.get("/health", headers={"Host": "evil.example"}).status_code == 400
+    assert client.get("/health", headers={"Host": "127.0.0.1:8000"}).status_code == 200
+
+
 def test_cors_is_never_wildcard(client):
     res = client.get("/health", headers={"Origin": "http://localhost:3000"})
     assert res.headers.get("access-control-allow-origin") != "*"

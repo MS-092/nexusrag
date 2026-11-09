@@ -33,7 +33,7 @@ def app(settings):
 
 @pytest.fixture
 def client(app):
-    with TestClient(app) as c:
+    with TestClient(app, base_url="http://localhost") as c:
         yield c
 
 
