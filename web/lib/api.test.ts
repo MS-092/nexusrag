@@ -379,3 +379,33 @@ describe("notebooks", () => {
     ).resolves.toBeUndefined();
   });
 });
+
+describe("chat scope", () => {
+  const reply = { answer: "x", mode: "extractive", citations: [] };
+
+  test("askBrain sends the notebook scope when given", async () => {
+    let body = "";
+    const f = (async (_u: string, init?: RequestInit) => {
+      body = init?.body as string;
+      return json(reply);
+    }) as unknown as typeof fetch;
+    await askBrain("q", DEFAULT_SETTINGS, "http://api.test", f, {
+      type: "notebook",
+      id: "n1",
+    });
+    expect(JSON.parse(body)).toEqual({
+      question: "q",
+      scope: { type: "notebook", id: "n1" },
+    });
+  });
+
+  test("askBrain omits the scope for the whole Brain", async () => {
+    let body = "";
+    const f = (async (_u: string, init?: RequestInit) => {
+      body = init?.body as string;
+      return json(reply);
+    }) as unknown as typeof fetch;
+    await askBrain("q", DEFAULT_SETTINGS, "http://api.test", f);
+    expect(JSON.parse(body)).toEqual({ question: "q" });
+  });
+});

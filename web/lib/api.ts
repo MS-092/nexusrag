@@ -206,11 +206,14 @@ export interface ChatResult {
   citations: Citation[];
 }
 
+export type ChatScope = { type: "brain" } | { type: "notebook"; id: string };
+
 export function askBrain(
   question: string,
   settings: Settings,
   baseUrl = API_URL,
   fetcher: typeof fetch = fetch,
+  scope?: ChatScope,
 ) {
   return request<ChatResult>(
     "/chat",
@@ -220,7 +223,7 @@ export function askBrain(
         "Content-Type": "application/json",
         ...providerHeaders(settings),
       },
-      body: JSON.stringify({ question }),
+      body: JSON.stringify(scope ? { question, scope } : { question }),
     },
     baseUrl,
     fetcher,

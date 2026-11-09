@@ -1,9 +1,15 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { askBrain, type ChatResult } from "@/lib/api";
+import {
+  askBrain,
+  listNotebooks,
+  type ChatResult,
+  type ChatScope,
+  type NotebookSummary,
+} from "@/lib/api";
 import { positionLabel } from "@/lib/sources";
 import { useSettings } from "@/lib/use-settings";
 
@@ -42,6 +48,22 @@ export function ChatView() {
   const [turns, setTurns] = useState<Turn[]>([]);
   const [text, setText] = useState("");
   const [pending, setPending] = useState(false);
+  const [notebooks, setNotebooks] = useState<NotebookSummary[]>([]);
+  const [scopeId, setScopeId] = useState("brain");
+
+  useEffect(() => {
+    let cancelled = false;
+    listNotebooks()
+      .then((rows) => {
+        if (!cancelled) setNotebooks(rows);
+      })
+      .catch(() => {
+        // the switcher just stays on "Whole Brain" if notebooks cannot load
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   async function send() {
     const question = text.trim();
@@ -50,7 +72,17 @@ export function ChatView() {
     setPending(true);
     setTurns((t) => [...t, { question }]);
     try {
-      const result = await askBrain(question, settings);
+      const scope: ChatScope =
+        scopeId === "brain"
+          ? { type: "brain" }
+          : { type: "notebook", id: scopeId };
+      const result = await askBrain(
+        question,
+        settings,
+        undefined,
+        undefined,
+        scope,
+      );
       setTurns((t) =>
         t.map((x, i) => (i === t.length - 1 ? { ...x, result } : x)),
       );
@@ -66,6 +98,22 @@ export function ChatView() {
 
   return (
     <div className="space-y-6">
+      <label className="flex items-center gap-2 text-sm">
+        <span className="text-muted-foreground">Scope</span>
+        <select
+          aria-label="Chat scope"
+          className="rounded-lg border border-border bg-background px-3 py-1.5 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          value={scopeId}
+          onChange={(e) => setScopeId(e.target.value)}
+        >
+          <option value="brain">Whole Brain</option>
+          {notebooks.map((n) => (
+            <option key={n.id} value={n.id}>
+              {n.name}
+            </option>
+          ))}
+        </select>
+      </label>
       {turns.length === 0 ? (
         <p className="text-sm text-muted-foreground">
           Ask anything about what is in your Brain. Every answer shows where it
