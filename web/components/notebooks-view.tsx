@@ -140,6 +140,7 @@ function NotebookPanel({
         <Button
           type="button"
           variant="ghost"
+          size="lg"
           disabled={busy}
           onClick={() => setConfirm(true)}
         >
