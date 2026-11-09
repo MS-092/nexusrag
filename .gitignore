@@ -1,0 +1,40 @@
+# local data (Brain contents, Qdrant, SQLite, uploads)
+data/
+
+# local-only design docs (kept on disk, not published)
+CONTEXT.md
+docs/
+diagrams/
+.scratch/
+
+# secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+credentials*
+secrets*
+*.local
+*.secret.*
+
+# python
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# node / next
+node_modules/
+.next/
+out/
+*.tsbuildinfo
+next-env.d.ts
+
+# os / editors
+.DS_Store
+.idea/
+.vscode/
