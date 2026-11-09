@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { formatSize, hasPending, stateLabel } from "./sources";
+import { formatSize, hasPending, positionLabel, stateLabel } from "./sources";
 
 describe("sources helpers", () => {
   test("formatSize uses human units", () => {
@@ -20,5 +20,15 @@ describe("sources helpers", () => {
     expect(stateLabel("processing")).toBe("Processing");
     expect(stateLabel("ready")).toBe("Ready");
     expect(stateLabel("failed")).toBe("Failed");
+  });
+});
+
+describe("positionLabel", () => {
+  test("describes pages, sheet rows and unpositioned sources", () => {
+    expect(positionLabel({ page: 3 })).toBe("p.3");
+    expect(positionLabel({ sheet: "Q1", rows: [2, 51] })).toBe(
+      "sheet Q1, rows 2–51",
+    );
+    expect(positionLabel({})).toBe("");
   });
 });

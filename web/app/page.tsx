@@ -1,4 +1,4 @@
-import { BrainView } from "@/components/brain-view";
+import { AppShell } from "@/components/app-shell";
 import { HealthPanel } from "@/components/health-panel";
 
 export default function Home() {
@@ -11,7 +11,7 @@ export default function Home() {
         </p>
       </header>
       <main className="flex-1">
-        <BrainView />
+        <AppShell />
       </main>
       <footer
         aria-labelledby="health-heading"

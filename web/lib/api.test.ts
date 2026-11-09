@@ -1,5 +1,12 @@
 import { describe, expect, test } from "bun:test";
-import { listSources, retrySource, uploadSource, type Source } from "./api";
+import {
+  askBrain,
+  listSources,
+  retrySource,
+  uploadSource,
+  type Source,
+} from "./api";
+import { DEFAULT_SETTINGS } from "./settings";
 
 const source: Source = {
   id: "s1",
@@ -74,5 +81,65 @@ describe("api client", () => {
     await expect(listSources("http://api.test", f)).rejects.toThrow(
       "Cannot reach the NexusRAG API",
     );
+  });
+});
+
+describe("askBrain", () => {
+  const reply = {
+    answer: "Revenue was 4.2 million [1].",
+    mode: "model",
+    citations: [
+      {
+        n: 1,
+        source_id: "s1",
+        source_name: "finance.pdf",
+        kind: "pdf",
+        position: { page: 1 },
+        quote: "Revenue in Q3 was 4.2 million",
+        removed: false,
+      },
+    ],
+  };
+
+  test("posts the question with provider headers and returns citations", async () => {
+    const seen: { headers?: Record<string, string>; body?: string } = {};
+    const f = (async (_u: string, init?: RequestInit) => {
+      seen.headers = init?.headers as Record<string, string>;
+      seen.body = init?.body as string;
+      return json(reply);
+    }) as unknown as typeof fetch;
+    const result = await askBrain(
+      "What was revenue?",
+      { provider: "openai", baseUrl: "", model: "gpt-x", key: "sk-1" },
+      "http://api.test",
+      f,
+    );
+    expect(result.citations[0].source_name).toBe("finance.pdf");
+    expect(JSON.parse(seen.body ?? "{}")).toEqual({
+      question: "What was revenue?",
+    });
+    expect(seen.headers?.["X-Provider-Key"]).toBe("sk-1");
+    expect(seen.headers?.["Content-Type"]).toBe("application/json");
+  });
+
+  test("sends no provider headers when offline", async () => {
+    const seen: { headers?: Record<string, string> } = {};
+    const f = (async (_u: string, init?: RequestInit) => {
+      seen.headers = init?.headers as Record<string, string>;
+      return json({ ...reply, mode: "extractive" });
+    }) as unknown as typeof fetch;
+    await askBrain("q", DEFAULT_SETTINGS, "http://api.test", f);
+    expect(Object.keys(seen.headers ?? {})).toEqual(["Content-Type"]);
+  });
+
+  test("surfaces a provider error message", async () => {
+    const f = (async () =>
+      json(
+        { detail: "The provider rejected the API key." },
+        401,
+      )) as unknown as typeof fetch;
+    await expect(
+      askBrain("q", DEFAULT_SETTINGS, "http://api.test", f),
+    ).rejects.toThrow("The provider rejected the API key.");
   });
 });

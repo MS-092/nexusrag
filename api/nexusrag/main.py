@@ -5,11 +5,13 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from nexusrag.config import Settings
 from nexusrag.health import health_report
+from nexusrag.answerer import Answerer
 from nexusrag.db import Database
 from nexusrag.embedder import get_embedder
 from nexusrag.index import Index
 from nexusrag.jobs import JobRunner
 from nexusrag.pipeline import Pipeline
+from nexusrag.routes_chat import router as chat_router
 from nexusrag.routes_sources import router as sources_router
 from nexusrag.sources import SourceStore
 
@@ -25,6 +27,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.state.embedder = get_embedder()
     app.state.index = Index(settings.data_dir / "qdrant")
     app.state.pipeline = Pipeline(app.state.store, app.state.index, app.state.embedder)
+    app.state.answerer = Answerer(app.state.store, app.state.index, app.state.embedder)
 
     # Single user, single machine: only the local web app may call this API.
     app.add_middleware(
@@ -35,6 +38,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     )
 
     app.include_router(sources_router)
+    app.include_router(chat_router)
 
     @app.get("/health")
     def health() -> dict:

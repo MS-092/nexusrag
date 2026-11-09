@@ -1,4 +1,5 @@
 import { API_URL } from "@/lib/health";
+import { providerHeaders, type Settings } from "@/lib/settings";
 
 export type SourceState = "processing" | "ready" | "failed";
 export type SourceKind = "pdf" | "image" | "spreadsheet" | "note";
@@ -82,6 +83,43 @@ export function retrySource(
   return request<Source>(
     `/sources/${id}/retry`,
     { method: "POST" },
+    baseUrl,
+    fetcher,
+  );
+}
+
+export interface Citation {
+  n: number;
+  source_id: string;
+  source_name: string;
+  kind: SourceKind | null;
+  position: { page?: number; sheet?: string; rows?: [number, number] };
+  quote: string;
+  removed: boolean;
+}
+
+export interface ChatResult {
+  answer: string;
+  mode: "model" | "extractive" | "no_results";
+  citations: Citation[];
+}
+
+export function askBrain(
+  question: string,
+  settings: Settings,
+  baseUrl = API_URL,
+  fetcher: typeof fetch = fetch,
+) {
+  return request<ChatResult>(
+    "/chat",
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...providerHeaders(settings),
+      },
+      body: JSON.stringify({ question }),
+    },
     baseUrl,
     fetcher,
   );

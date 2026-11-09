@@ -80,8 +80,9 @@ class Index:
             query=models.FusionQuery(fusion=models.Fusion.RRF),
             limit=k,
             with_payload=True,
+            with_vectors=["dense"],
         )
-        return [{"score": p.score, **p.payload} for p in result.points]
+        return [{"score": p.score, "vector": p.vector["dense"], **p.payload} for p in result.points]
 
     def close(self) -> None:
         self.client.close()

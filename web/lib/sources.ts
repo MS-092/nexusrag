@@ -22,3 +22,14 @@ export function stateLabel(state: SourceState): string {
 
 /** File extensions the API accepts. Grows with each Source kind. */
 export const ACCEPT = ".pdf,.csv,.xlsx,.png,.jpg,.jpeg";
+
+export function positionLabel(position: {
+  page?: number;
+  sheet?: string;
+  rows?: [number, number];
+}): string {
+  if (position.sheet && position.rows)
+    return `sheet ${position.sheet}, rows ${position.rows[0]}–${position.rows[1]}`;
+  if (position.page) return `p.${position.page}`;
+  return "";
+}
