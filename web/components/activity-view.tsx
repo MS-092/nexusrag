@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Badge } from "@/components/ui/badge";
+import { Select } from "@/components/ui/select";
 import { listActivity, listNotebooks, type NotebookSummary } from "@/lib/api";
 import { activityLabel, type ActivityEvent } from "@/lib/activity";
 
@@ -50,9 +51,8 @@ export function ActivityView() {
     <div className="space-y-6">
       <label className="flex items-center gap-2 text-sm">
         <span className="text-muted-foreground">Show</span>
-        <select
+        <Select
           aria-label="Activity scope"
-          className="rounded-lg border border-border bg-background px-3 py-1.5 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
           value={scopeId}
           onChange={(e) => {
             setLoad({ kind: "loading" });
@@ -65,7 +65,7 @@ export function ActivityView() {
               {n.name}
             </option>
           ))}
-        </select>
+        </Select>
       </label>
       {load.kind === "loading" ? (
         <p className="text-sm text-muted-foreground">Loading…</p>

@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Select } from "@/components/ui/select";
 import {
   askBrain,
   deleteConversation,
@@ -173,9 +174,8 @@ export function ChatView() {
       <div className="space-y-6">
         <label className="flex items-center gap-2 text-sm">
           <span className="text-muted-foreground">Scope</span>
-          <select
+          <Select
             aria-label="Chat scope"
-            className="rounded-lg border border-border bg-background px-3 py-1.5 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
             value={scopeId}
             onChange={(e) => {
               setScopeId(e.target.value);
@@ -188,7 +188,7 @@ export function ChatView() {
                 {n.name}
               </option>
             ))}
-          </select>
+          </Select>
         </label>
 
         {turns.length === 0 ? (

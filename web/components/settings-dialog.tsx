@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { Select } from "@/components/ui/select";
 import {
   Dialog,
   DialogContent,
@@ -21,7 +22,7 @@ const LABELS: Record<ProviderChoice, string> = {
 };
 
 const field =
-  "w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring";
+  "w-full rounded-lg border border-border bg-background h-9 px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring";
 
 function Form({ initial, onDone }: { initial: Settings; onDone: () => void }) {
   const [draft, setDraft] = useState<Settings>(initial);
@@ -40,8 +41,8 @@ function Form({ initial, onDone }: { initial: Settings; onDone: () => void }) {
     >
       <label className="block space-y-1 text-sm">
         <span className="font-medium">Provider</span>
-        <select
-          className={field}
+        <Select
+          className="w-full"
           value={draft.provider}
           onChange={(e) => set("provider", e.target.value as ProviderChoice)}
         >
@@ -50,7 +51,7 @@ function Form({ initial, onDone }: { initial: Settings; onDone: () => void }) {
               {LABELS[p]}
             </option>
           ))}
-        </select>
+        </Select>
       </label>
       {draft.provider === "openai-compatible" ? (
         <label className="block space-y-1 text-sm">

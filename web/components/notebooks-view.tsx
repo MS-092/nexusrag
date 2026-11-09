@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { ConfirmDelete } from "@/components/confirm-delete";
 import { Button } from "@/components/ui/button";
+import { Select } from "@/components/ui/select";
 import {
   createNotebook,
   deleteNotebook,
@@ -26,7 +27,7 @@ import {
 } from "@/lib/notebooks";
 
 const field =
-  "rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring";
+  "rounded-lg border border-border bg-background h-9 px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring";
 const press =
   "motion-safe:active:scale-[0.97] motion-safe:transition-transform";
 
@@ -131,6 +132,7 @@ function NotebookPanel({
         <Button
           type="submit"
           variant="outline"
+          size="lg"
           disabled={busy || !name.trim() || name === notebook.name}
         >
           Rename
@@ -196,16 +198,15 @@ function NotebookPanel({
             addRule();
           }}
         >
-          <select
+          <Select
             aria-label="Rule type"
-            className={field}
             value={ruleType}
             onChange={(e) => setRuleType(e.target.value as RuleType)}
           >
             <option value="keyword">Keyword</option>
             <option value="tag">Tag</option>
             <option value="file_type">File type</option>
-          </select>
+          </Select>
           <input
             aria-label="Rule value"
             className={`${field} flex-1`}
@@ -220,6 +221,7 @@ function NotebookPanel({
           <Button
             type="submit"
             variant="outline"
+            size="lg"
             disabled={busy || !ruleValue.trim()}
             className={press}
           >
@@ -319,9 +321,9 @@ function NotebookPanel({
             void act(() => pinSource(id, chosen, "in"));
           }}
         >
-          <select
+          <Select
             aria-label="Source to pin"
-            className={`${field} flex-1`}
+            className="flex-1"
             value={pickSource}
             onChange={(e) => setPickSource(e.target.value)}
           >
@@ -331,10 +333,11 @@ function NotebookPanel({
                 {s.name}
               </option>
             ))}
-          </select>
+          </Select>
           <Button
             type="submit"
             variant="outline"
+            size="lg"
             disabled={busy || !pickSource}
             className={press}
           >
@@ -422,6 +425,7 @@ export function NotebooksView() {
           <Button
             type="submit"
             variant="outline"
+            size="lg"
             disabled={creating || !newName.trim()}
             className={press}
           >
