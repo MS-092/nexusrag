@@ -7,10 +7,22 @@ Status: v1 built. Everything under "Highlights" works; the roadmap below is what
 ## Highlights
 
 - Text-grounded hybrid RAG: every file is turned into text once at ingestion (extraction, local OCR, optional vision caption), then retrieved with one local text embedder plus keyword search, so answers about charts and tables cite real text.
-- Offline, hash-cached ingestion: re-uploading a file never reprocesses it.
+- Offline, hash-cached ingestion: re-uploading a file never repeats extraction, OCR or captioning.
 - Stateless BYOK: your API key stays in your browser and is sent per request; the server never stores or logs it.
 - Notebooks fill themselves from rules and accept manual pins; private sources never reach any AI provider.
 - Chat skills such as `/summarize` and `/status`.
+
+## Screenshots
+
+| Sources | Notebooks |
+| --- | --- |
+| ![Sources tab: drop zone and ingested notes with auto-derived tags](docs/screenshots/sources.png) | ![Notebooks tab: rules, pinned sources and the pin dropdown](docs/screenshots/notebooks.png) |
+| **Chat** | **Activity** |
+| ![Chat tab: scope selector, skills and system health](docs/screenshots/chat.png) | ![Activity tab: what changed in the Brain](docs/screenshots/activity.png) |
+
+## Architecture
+
+Files become text once, are indexed locally with dense and BM25 vectors fused by reciprocal rank fusion, and answers pass a calibrated relevance gate before any model sees them. Diagrams for ingestion, querying and key handling are in [`docs/architecture.md`](docs/architecture.md); the reasoning is in [`docs/adr/`](docs/adr/).
 
 ## Stack
 
