@@ -65,6 +65,17 @@ class SourceStore:
     def delete(self, sid: str) -> None:
         self.db.execute("DELETE FROM sources WHERE id = ?", (sid,))
 
+    def hash_in_use(self, content_hash: str, kind: str) -> bool:
+        row = self.db.one(
+            "SELECT 1 AS used FROM sources WHERE content_hash = ? AND kind = ? LIMIT 1", (content_hash, kind)
+        )
+        return row is not None
+
+    def cache_delete(self, content_hash: str, kind: str) -> None:
+        self.db.execute(
+            "DELETE FROM extraction_cache WHERE content_hash = ? AND kind = ?", (content_hash, kind)
+        )
+
     # extraction cache (keyed by content hash + kind)
     def cache_get(self, content_hash: str, kind: str) -> list[dict[str, Any]] | None:
         row = self.db.one(

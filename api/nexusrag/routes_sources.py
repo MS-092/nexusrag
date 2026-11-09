@@ -1,9 +1,10 @@
 from __future__ import annotations
 
 import hashlib
+import shutil
 from pathlib import Path
 
-from fastapi import APIRouter, File, HTTPException, Request, UploadFile
+from fastapi import APIRouter, File, HTTPException, Request, Response, UploadFile
 
 from nexusrag import extractors
 
@@ -62,3 +63,18 @@ def retry_source(request: Request, source_id: str) -> dict:
     state.store.update(source_id, state="processing", error=None)
     state.jobs.submit(lambda: state.pipeline.process(source_id))
     return state.store.get(source_id)  # type: ignore[return-value]
+
+
+@router.delete("/sources/{source_id}", status_code=204)
+def delete_source(request: Request, source_id: str) -> Response:
+    state = request.app.state
+    row = state.store.raw(source_id)
+    if row is None:
+        raise HTTPException(404, "Source not found")
+    state.index.delete_source(source_id)
+    state.store.delete(source_id)
+    # Extracted text must not outlive its Source, unless an identical file is still in the Brain.
+    if not state.store.hash_in_use(row["content_hash"], row["kind"]):
+        state.store.cache_delete(row["content_hash"], row["kind"])
+    shutil.rmtree(state.settings.data_dir / "files" / source_id, ignore_errors=True)
+    return Response(status_code=204)

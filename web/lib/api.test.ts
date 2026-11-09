@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import {
   askBrain,
+  deleteSource,
   listSources,
   retrySource,
   uploadSource,
@@ -141,5 +142,29 @@ describe("askBrain", () => {
     await expect(
       askBrain("q", DEFAULT_SETTINGS, "http://api.test", f),
     ).rejects.toThrow("The provider rejected the API key.");
+  });
+});
+
+describe("deleteSource", () => {
+  test("sends DELETE and tolerates the empty 204 response", async () => {
+    const seen: { url?: string; method?: string } = {};
+    const f = (async (u: string, init?: RequestInit) => {
+      seen.url = u;
+      seen.method = init?.method;
+      return new Response(null, { status: 204 });
+    }) as unknown as typeof fetch;
+    await deleteSource("s1", "http://api.test", f);
+    expect(seen).toEqual({
+      url: "http://api.test/sources/s1",
+      method: "DELETE",
+    });
+  });
+
+  test("reports a missing source", async () => {
+    const f = (async () =>
+      json({ detail: "Source not found" }, 404)) as unknown as typeof fetch;
+    await expect(deleteSource("nope", "http://api.test", f)).rejects.toThrow(
+      "Source not found",
+    );
   });
 });

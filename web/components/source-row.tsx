@@ -10,6 +10,7 @@ interface SourceRowProps {
   retrying: boolean;
   onOpen: (source: Source) => void;
   onRetry: (source: Source) => void;
+  onDelete: (source: Source) => void;
 }
 
 export function SourceRow({
@@ -17,6 +18,7 @@ export function SourceRow({
   retrying,
   onOpen,
   onRetry,
+  onDelete,
 }: SourceRowProps) {
   return (
     <li className="flex items-center gap-3 rounded-xl border border-border px-4 py-3">
@@ -33,6 +35,18 @@ export function SourceRow({
           {source.state === "ready" ? ` · ${source.chunk_count} chunks` : ""}
           {source.cache_hit ? " · from cache" : ""}
         </span>
+        {source.tags.length > 0 ? (
+          <span className="mt-1 flex flex-wrap gap-1">
+            {source.tags.map((tag) => (
+              <span
+                key={tag}
+                className="rounded-md bg-muted px-1.5 py-0.5 text-[11px] text-muted-foreground"
+              >
+                #{tag}
+              </span>
+            ))}
+          </span>
+        ) : null}
         {source.state === "failed" && source.error ? (
           <span
             role="alert"
@@ -59,6 +73,15 @@ export function SourceRow({
           {retrying ? "Retrying…" : "Retry"}
         </Button>
       ) : null}
+      <Button
+        size="sm"
+        variant="ghost"
+        aria-label={`Delete ${source.name}`}
+        onClick={() => onDelete(source)}
+        className="motion-safe:active:scale-[0.97] motion-safe:transition-transform"
+      >
+        Delete
+      </Button>
     </li>
   );
 }

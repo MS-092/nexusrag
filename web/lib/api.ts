@@ -45,6 +45,7 @@ async function request<T>(
     }
     throw new Error(detail);
   }
+  if (res.status === 204) return undefined as T;
   return (await res.json()) as T;
 }
 
@@ -70,6 +71,19 @@ export function uploadSource(
   return request<Source>(
     "/sources",
     { method: "POST", body: form },
+    baseUrl,
+    fetcher,
+  );
+}
+
+export function deleteSource(
+  id: string,
+  baseUrl = API_URL,
+  fetcher: typeof fetch = fetch,
+) {
+  return request<void>(
+    `/sources/${id}`,
+    { method: "DELETE" },
     baseUrl,
     fetcher,
   );

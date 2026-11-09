@@ -1,10 +1,17 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { ConfirmDelete } from "@/components/confirm-delete";
 import { SourceDialog } from "@/components/source-dialog";
 import { SourceRow } from "@/components/source-row";
 import { UploadZone } from "@/components/upload-zone";
-import { listSources, retrySource, uploadSource, type Source } from "@/lib/api";
+import {
+  deleteSource,
+  listSources,
+  retrySource,
+  uploadSource,
+  type Source,
+} from "@/lib/api";
 import { hasPending } from "@/lib/sources";
 
 const POLL_MS = 1500;
@@ -23,6 +30,9 @@ export function BrainView() {
   const [retrying, setRetrying] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [open, setOpen] = useState<string | null>(null);
+  const [toDelete, setToDelete] = useState<Source | null>(null);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
     try {
@@ -84,6 +94,20 @@ export function BrainView() {
     await refresh();
   }
 
+  async function onConfirmDelete() {
+    if (!toDelete) return;
+    setDeleting(true);
+    setDeleteError(null);
+    try {
+      await deleteSource(toDelete.id);
+      setToDelete(null);
+      await refresh();
+    } catch (err) {
+      setDeleteError(messageOf(err));
+    }
+    setDeleting(false);
+  }
+
   return (
     <div className="space-y-6">
       <UploadZone busy={uploading} onFiles={(f) => void onFiles(f)} />
@@ -121,12 +145,23 @@ export function BrainView() {
                 retrying={retrying === s.id}
                 onOpen={(src) => setOpen(src.id)}
                 onRetry={(src) => void onRetry(src)}
+                onDelete={(src) => {
+                  setDeleteError(null);
+                  setToDelete(src);
+                }}
               />
             ))}
           </ul>
         ) : null}
       </section>
       <SourceDialog sourceId={open} onClose={() => setOpen(null)} />
+      <ConfirmDelete
+        name={toDelete?.name ?? null}
+        busy={deleting}
+        error={deleteError}
+        onCancel={() => setToDelete(null)}
+        onConfirm={() => void onConfirmDelete()}
+      />
     </div>
   );
 }
