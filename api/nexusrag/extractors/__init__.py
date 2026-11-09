@@ -40,4 +40,4 @@ def extract(kind: str, path: Path) -> list[Block]:
     return EXTRACTORS[kind](path)
 
 
-from nexusrag.extractors import pdf  # noqa: E402,F401  (registers itself)
+from nexusrag.extractors import image, pdf, sheet  # noqa: E402,F401  (each registers itself)

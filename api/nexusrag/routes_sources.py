@@ -32,7 +32,7 @@ async def upload_source(request: Request, file: UploadFile = File(...)) -> dict:
     source = state.store.create(kind=kind, name=name, content_hash=content_hash, size=len(data), file_path=None)
     dest = state.settings.data_dir / "files" / source["id"]
     dest.mkdir(parents=True, exist_ok=True)
-    path = dest / "original"
+    path = dest / f"original{Path(name).suffix.lower()}"
     path.write_bytes(data)
     state.store.update(source["id"], file_path=str(path))
 

@@ -109,7 +109,7 @@ export function BrainView() {
         ) : null}
         {load.kind === "ready" && sources.length === 0 ? (
           <p className="text-sm text-muted-foreground">
-            Your Brain is empty. Add a PDF to get started.
+            Your Brain is empty. Add a PDF, spreadsheet or image to get started.
           </p>
         ) : null}
         {sources.length > 0 ? (

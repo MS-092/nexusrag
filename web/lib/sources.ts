@@ -21,4 +21,4 @@ export function stateLabel(state: SourceState): string {
 }
 
 /** File extensions the API accepts. Grows with each Source kind. */
-export const ACCEPT = ".pdf";
+export const ACCEPT = ".pdf,.csv,.xlsx,.png,.jpg,.jpeg";
