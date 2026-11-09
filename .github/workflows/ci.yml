@@ -15,7 +15,9 @@ jobs:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v5
       - run: uv sync
-      - run: uv run pytest -q
+      - run: uv run pytest -q --ignore=tests/eval
+      - name: Retrieval eval (recall@4, citation correctness, refusal)
+        run: uv run pytest tests/eval -q -s
 
   web:
     runs-on: ubuntu-latest

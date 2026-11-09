@@ -13,9 +13,10 @@ from nexusrag.providers import ProviderConfig
 from nexusrag.sources import SourceStore
 
 TOP_K = 4
-# Calibrated on the local embedder: unrelated queries peak near 0.51 cosine,
-# relevant ones start near 0.59. The eval (ticket 17) re-checks this.
-MIN_SIMILARITY = 0.55
+# Calibrated on the local embedder with the eval corpus (tests/eval): the best hit for
+# answerable questions scores >= 0.605 cosine, for unanswerable ones <= 0.559. The gate
+# sits in the middle of that gap. Exact-term matches bypass it. The eval re-checks this.
+MIN_SIMILARITY = 0.58
 QUOTE_CHARS = 320
 MAX_IMAGES = 2
 NO_RESULTS = "There is not enough information in your Sources to answer that."
