@@ -1,4 +1,5 @@
 import { API_URL } from "@/lib/health";
+import type { ActivityEvent } from "@/lib/activity";
 import type { Reason, Rule } from "@/lib/notebooks";
 import {
   DEFAULT_SETTINGS,
@@ -344,6 +345,22 @@ export function unpinSource(
   return request<void>(
     `/notebooks/${id}/pins/${sourceId}`,
     { method: "DELETE" },
+    baseUrl,
+    fetcher,
+  );
+}
+
+export function listActivity(
+  notebookId?: string,
+  baseUrl = API_URL,
+  fetcher: typeof fetch = fetch,
+) {
+  const query = notebookId
+    ? `?notebook_id=${encodeURIComponent(notebookId)}`
+    : "";
+  return request<ActivityEvent[]>(
+    `/activity${query}`,
+    undefined,
     baseUrl,
     fetcher,
   );

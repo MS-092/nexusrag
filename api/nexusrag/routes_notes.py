@@ -95,5 +95,6 @@ def update_note(request: Request, note_id: str, body: NoteBody) -> dict:
     # Old text must not outlive the edit in the extraction cache.
     if row["content_hash"] != new_hash and not state.store.hash_in_use(row["content_hash"], "note"):
         state.store.cache_purge(row["content_hash"])
+    state.activity.record("edited", note_id, body.title, state.notebooks.notebooks_containing(note_id))
     state.jobs.submit(lambda: state.pipeline.process(note_id))
     return state.store.get(note_id)  # type: ignore[return-value]

@@ -1,17 +1,19 @@
 "use client";
 
 import { useState } from "react";
+import { ActivityView } from "@/components/activity-view";
 import { BrainView } from "@/components/brain-view";
 import { ChatView } from "@/components/chat-view";
 import { NotebooksView } from "@/components/notebooks-view";
 import { SettingsDialog } from "@/components/settings-dialog";
 
-type Tab = "sources" | "notebooks" | "chat";
+type Tab = "sources" | "notebooks" | "chat" | "activity";
 
 const TABS: { id: Tab; label: string }[] = [
   { id: "sources", label: "Sources" },
   { id: "notebooks", label: "Notebooks" },
   { id: "chat", label: "Chat" },
+  { id: "activity", label: "Activity" },
 ];
 
 export function AppShell() {
@@ -45,6 +47,8 @@ export function AppShell() {
         <BrainView />
       ) : tab === "notebooks" ? (
         <NotebooksView />
+      ) : tab === "activity" ? (
+        <ActivityView />
       ) : (
         <ChatView />
       )}

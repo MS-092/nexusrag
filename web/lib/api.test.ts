@@ -7,6 +7,7 @@ import {
   deleteNotebook,
   deleteSource,
   getNote,
+  listActivity,
   listNotebooks,
   listSources,
   pinSource,
@@ -407,5 +408,19 @@ describe("chat scope", () => {
     }) as unknown as typeof fetch;
     await askBrain("q", DEFAULT_SETTINGS, "http://api.test", f);
     expect(JSON.parse(body)).toEqual({ question: "q" });
+  });
+});
+
+describe("activity", () => {
+  test("listActivity filters by notebook", async () => {
+    let url = "";
+    const f = (async (u: string) => {
+      url = u;
+      return json([]);
+    }) as unknown as typeof fetch;
+    await listActivity("n1", "http://api.test", f);
+    expect(url).toBe("http://api.test/activity?notebook_id=n1");
+    await listActivity(undefined, "http://api.test", f);
+    expect(url).toBe("http://api.test/activity");
   });
 });

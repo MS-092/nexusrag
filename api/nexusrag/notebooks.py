@@ -93,6 +93,13 @@ class NotebookStore:
                 out.append({**public, "reasons": reasons})
         return out
 
+    def notebooks_containing(self, source_id: str) -> list[str]:
+        return [
+            row["id"]
+            for row in self.db.query("SELECT id FROM notebooks ORDER BY created_at, id")
+            if source_id in self.member_ids(row["id"])
+        ]
+
     def member_ids(self, nid: str) -> set[str]:
         return {m["id"] for m in self.members(nid)}
 

@@ -18,7 +18,9 @@ log = logging.getLogger("nexusrag.pipeline")
 class Pipeline:
     """hash -> cache lookup -> extract -> chunk -> embed -> index -> ready."""
 
-    def __init__(self, store: SourceStore, index: Index, embedder: Embedder) -> None:
+    def __init__(self, store: SourceStore, index: Index, embedder: Embedder, activity=None, notebooks=None) -> None:
+        self.activity = activity
+        self.notebooks = notebooks
         self.store = store
         self.index = index
         self.embedder = embedder
@@ -54,11 +56,18 @@ class Pipeline:
                 extracted_text=text,
                 tags=derive_tags(text),
             )
+            self._record_added(source_id, row["name"])
         except ExtractionError as exc:
             self.store.update(source_id, state="failed", error=str(exc))
         except Exception:
             log.exception("ingestion failed for %s", source_id)
             self.store.update(source_id, state="failed", error="Ingestion failed unexpectedly. See the API log.")
+
+    def _record_added(self, source_id: str, name: str) -> None:
+        if self.activity is None or self.activity.has("added", source_id):
+            return
+        ids = self.notebooks.notebooks_containing(source_id) if self.notebooks else []
+        self.activity.record("added", source_id, name, ids)
 
     def _caption(self, row: dict, provider: ProviderConfig | None) -> tuple[str | None, str | None]:
         cached = self.store.cache_get(row["content_hash"], "image-caption")

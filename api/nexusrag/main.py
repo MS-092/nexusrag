@@ -5,6 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from nexusrag.config import Settings
 from nexusrag.health import health_report
+from nexusrag.activity import ActivityLog
 from nexusrag.answerer import Answerer
 from nexusrag.db import Database
 from nexusrag.embedder import get_embedder
@@ -12,6 +13,7 @@ from nexusrag.index import Index
 from nexusrag.jobs import JobRunner
 from nexusrag.notebooks import NotebookStore
 from nexusrag.pipeline import Pipeline
+from nexusrag.routes_activity import router as activity_router
 from nexusrag.routes_chat import router as chat_router
 from nexusrag.routes_notebooks import router as notebooks_router
 from nexusrag.routes_notes import router as notes_router
@@ -30,7 +32,10 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.state.notebooks = NotebookStore(app.state.db, app.state.store)
     app.state.embedder = get_embedder()
     app.state.index = Index(settings.data_dir / "qdrant")
-    app.state.pipeline = Pipeline(app.state.store, app.state.index, app.state.embedder)
+    app.state.activity = ActivityLog(app.state.db)
+    app.state.pipeline = Pipeline(
+        app.state.store, app.state.index, app.state.embedder, app.state.activity, app.state.notebooks
+    )
     app.state.answerer = Answerer(app.state.store, app.state.index, app.state.embedder)
 
     # Single user, single machine: only the local web app may call this API.
@@ -45,6 +50,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(chat_router)
     app.include_router(notes_router)
     app.include_router(notebooks_router)
+    app.include_router(activity_router)
 
     @app.get("/health")
     def health() -> dict:

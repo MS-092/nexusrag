@@ -38,6 +38,14 @@ CREATE TABLE IF NOT EXISTS pins (
     mode TEXT NOT NULL CHECK (mode IN ('in', 'out')),
     PRIMARY KEY (notebook_id, source_id)
 );
+CREATE TABLE IF NOT EXISTS activity (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    kind TEXT NOT NULL CHECK (kind IN ('added', 'edited', 'removed')),
+    source_id TEXT NOT NULL,
+    source_name TEXT NOT NULL,
+    notebook_ids TEXT NOT NULL DEFAULT '[]',
+    created_at TEXT NOT NULL
+);
 CREATE TABLE IF NOT EXISTS extraction_cache (
     content_hash TEXT NOT NULL,
     kind TEXT NOT NULL,
