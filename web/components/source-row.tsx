@@ -13,6 +13,7 @@ interface SourceRowProps {
   onDelete: (source: Source) => void;
   onEdit: (source: Source) => void;
   onCaption: (source: Source) => void;
+  onTogglePrivate: (source: Source) => void;
   canCaption: boolean;
 }
 
@@ -25,6 +26,7 @@ export function SourceRow({
   onEdit,
   onCaption,
   canCaption,
+  onTogglePrivate,
 }: SourceRowProps) {
   return (
     <li className="flex items-center gap-3 rounded-xl border border-border px-4 py-3">
@@ -80,9 +82,21 @@ export function SourceRow({
           {retrying ? "Retrying…" : "Retry"}
         </Button>
       ) : null}
+      {source.private ? <Badge variant="outline">Private</Badge> : null}
+      <Button
+        size="sm"
+        variant="ghost"
+        aria-pressed={source.private}
+        aria-label={`${source.private ? "Make public" : "Make private"}: ${source.name}`}
+        onClick={() => onTogglePrivate(source)}
+        className="motion-safe:active:scale-[0.97] motion-safe:transition-transform"
+      >
+        {source.private ? "Make public" : "Make private"}
+      </Button>
       {source.kind === "image" &&
       source.state === "ready" &&
-      !source.captioned ? (
+      !source.captioned &&
+      !source.private ? (
         <Button
           size="sm"
           variant="outline"

@@ -31,13 +31,15 @@ class SourceStore:
     def __init__(self, db: Database) -> None:
         self.db = db
 
-    def create(self, *, kind: str, name: str, content_hash: str, size: int, file_path: str | None) -> dict[str, Any]:
+    def create(
+        self, *, kind: str, name: str, content_hash: str, size: int, file_path: str | None, private: bool = False
+    ) -> dict[str, Any]:
         sid = uuid.uuid4().hex
         ts = now()
         self.db.execute(
-            "INSERT INTO sources (id, kind, name, content_hash, size, state, file_path, created_at, updated_at)"
-            " VALUES (?, ?, ?, ?, ?, 'processing', ?, ?, ?)",
-            (sid, kind, name, content_hash, size, file_path, ts, ts),
+            "INSERT INTO sources (id, kind, name, content_hash, size, state, private, file_path, created_at, updated_at)"
+            " VALUES (?, ?, ?, ?, ?, 'processing', ?, ?, ?, ?)",
+            (sid, kind, name, content_hash, size, int(private), file_path, ts, ts),
         )
         return self.get(sid)  # type: ignore[return-value]
 

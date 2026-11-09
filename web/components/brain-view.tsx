@@ -12,6 +12,7 @@ import {
   deleteSource,
   listSources,
   retrySource,
+  setPrivate,
   uploadSource,
   type Source,
 } from "@/lib/api";
@@ -72,13 +73,13 @@ export function BrainView() {
     return () => clearInterval(id);
   }, [pending, refresh]);
 
-  async function onFiles(files: File[]) {
+  async function onFiles(files: File[], makePrivate: boolean) {
     setUploading(true);
     setActionError(null);
     const failures: string[] = [];
     for (const file of files) {
       try {
-        await uploadSource(file, undefined, undefined, settings);
+        await uploadSource(file, undefined, undefined, settings, makePrivate);
       } catch (err) {
         failures.push(`${file.name}: ${messageOf(err)}`);
       }
@@ -97,6 +98,16 @@ export function BrainView() {
       setActionError(`${source.name}: ${messageOf(err)}`);
     }
     setRetrying(null);
+    await refresh();
+  }
+
+  async function onTogglePrivate(source: Source) {
+    setActionError(null);
+    try {
+      await setPrivate(source.id, !source.private);
+    } catch (err) {
+      setActionError(`${source.name}: ${messageOf(err)}`);
+    }
     await refresh();
   }
 
@@ -126,7 +137,7 @@ export function BrainView() {
 
   return (
     <div className="space-y-6">
-      <UploadZone busy={uploading} onFiles={(f) => void onFiles(f)} />
+      <UploadZone busy={uploading} onFiles={(f, p) => void onFiles(f, p)} />
       <div className="flex justify-end">
         <Button variant="outline" size="sm" onClick={() => setNoteId(null)}>
           New note
@@ -167,6 +178,7 @@ export function BrainView() {
                 onOpen={(src) => setOpen(src.id)}
                 onRetry={(src) => void onRetry(src)}
                 onEdit={(src) => setNoteId(src.id)}
+                onTogglePrivate={(src) => void onTogglePrivate(src)}
                 canCaption={settings.provider !== "none"}
                 onCaption={(src) => void onCaption(src)}
                 onDelete={(src) => {

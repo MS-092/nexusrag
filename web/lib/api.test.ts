@@ -7,6 +7,7 @@ import {
   getNote,
   listSources,
   retrySource,
+  setPrivate,
   updateNote,
   uploadSource,
   type Source,
@@ -270,5 +271,48 @@ describe("captions and provider headers on upload", () => {
     expect(seen.url).toBe("http://api.test/sources/s1/caption");
     expect(seen.method).toBe("POST");
     expect(seen.headers?.["X-Provider"]).toBe("openai");
+  });
+});
+
+describe("private sources", () => {
+  test("uploadSource can mark the new source private", async () => {
+    let url = "";
+    const f = (async (u: string) => {
+      url = u;
+      return json(source, 202);
+    }) as unknown as typeof fetch;
+    await uploadSource(
+      new File(["x"], "a.png"),
+      "http://api.test",
+      f,
+      DEFAULT_SETTINGS,
+      true,
+    );
+    expect(url).toBe("http://api.test/sources?private=true");
+  });
+
+  test("uploadSource is public by default", async () => {
+    let url = "";
+    const f = (async (u: string) => {
+      url = u;
+      return json(source, 202);
+    }) as unknown as typeof fetch;
+    await uploadSource(new File(["x"], "a.png"), "http://api.test", f);
+    expect(url).toBe("http://api.test/sources");
+  });
+
+  test("setPrivate patches the source", async () => {
+    const seen: { url?: string; method?: string; body?: string } = {};
+    const f = (async (u: string, init?: RequestInit) => {
+      seen.url = u;
+      seen.method = init?.method;
+      seen.body = init?.body as string;
+      return json({ ...source, private: true });
+    }) as unknown as typeof fetch;
+    const result = await setPrivate("s1", true, "http://api.test", f);
+    expect(result.private).toBe(true);
+    expect(seen.url).toBe("http://api.test/sources/s1");
+    expect(seen.method).toBe("PATCH");
+    expect(JSON.parse(seen.body ?? "{}")).toEqual({ private: true });
   });
 });

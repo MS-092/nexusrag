@@ -13,6 +13,7 @@ MAX_NOTE_BYTES = 1024 * 1024
 class NoteBody(BaseModel):
     title: str
     content: str
+    private: bool = False
 
     @field_validator("title")
     @classmethod
@@ -54,7 +55,12 @@ def create_note(request: Request, body: NoteBody) -> dict:
     state = request.app.state
     data = body.content.encode("utf-8")
     note = state.store.create(
-        kind="note", name=body.title, content_hash=hashlib.sha256(data).hexdigest(), size=len(data), file_path=None
+        kind="note",
+        name=body.title,
+        content_hash=hashlib.sha256(data).hexdigest(),
+        size=len(data),
+        file_path=None,
+        private=body.private,
     )
     path = _write(request, note["id"], body.content)
     state.store.update(note["id"], file_path=str(path))

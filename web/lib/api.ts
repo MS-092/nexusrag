@@ -70,13 +70,29 @@ export function uploadSource(
   baseUrl = API_URL,
   fetcher: typeof fetch = fetch,
   settings: Settings = DEFAULT_SETTINGS,
+  makePrivate = false,
 ) {
   const form = new FormData();
   form.append("file", file);
   // Headers (never the body) carry the key so an image can be captioned during ingestion.
+  // A private upload is never captioned or sent to any provider.
   return request<Source>(
-    "/sources",
+    `/sources${makePrivate ? "?private=true" : ""}`,
     { method: "POST", body: form, headers: providerHeaders(settings) },
+    baseUrl,
+    fetcher,
+  );
+}
+
+export function setPrivate(
+  id: string,
+  value: boolean,
+  baseUrl = API_URL,
+  fetcher: typeof fetch = fetch,
+) {
+  return request<Source>(
+    `/sources/${id}`,
+    jsonInit("PATCH", { private: value }),
     baseUrl,
     fetcher,
   );

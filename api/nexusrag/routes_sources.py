@@ -5,6 +5,7 @@ import shutil
 from pathlib import Path
 
 from fastapi import APIRouter, File, HTTPException, Request, Response, UploadFile
+from pydantic import BaseModel
 
 from nexusrag import extractors
 from nexusrag.routes_common import provider_config
@@ -17,7 +18,7 @@ def _safe_name(filename: str | None) -> str:
 
 
 @router.post("/sources", status_code=202)
-async def upload_source(request: Request, file: UploadFile = File(...)) -> dict:
+async def upload_source(request: Request, file: UploadFile = File(...), private: bool = False) -> dict:
     state = request.app.state
     provider = provider_config(request)
     name = _safe_name(file.filename)
@@ -32,7 +33,9 @@ async def upload_source(request: Request, file: UploadFile = File(...)) -> dict:
         raise HTTPException(413, f"File is over the {limit // (1024 * 1024)} MB limit.")
 
     content_hash = hashlib.sha256(data).hexdigest()
-    source = state.store.create(kind=kind, name=name, content_hash=content_hash, size=len(data), file_path=None)
+    source = state.store.create(
+        kind=kind, name=name, content_hash=content_hash, size=len(data), file_path=None, private=private
+    )
     dest = state.settings.data_dir / "files" / source["id"]
     dest.mkdir(parents=True, exist_ok=True)
     path = dest / f"original{Path(name).suffix.lower()}"
@@ -90,9 +93,24 @@ def caption_source(request: Request, source_id: str) -> dict:
         raise HTTPException(404, "Source not found")
     if row["kind"] != "image":
         raise HTTPException(400, "Only images can be captioned.")
+    if row["private"]:
+        raise HTTPException(400, "Private Sources are never sent to an AI provider.")
     provider = provider_config(request)
     if provider is None:
         raise HTTPException(400, "An AI provider is required to caption an image.")
     state.store.update(source_id, state="processing", error=None)
     state.jobs.submit(lambda: state.pipeline.process(source_id, provider))
+    return state.store.get(source_id)  # type: ignore[return-value]
+
+
+class SourcePatch(BaseModel):
+    private: bool
+
+
+@router.patch("/sources/{source_id}")
+def patch_source(request: Request, source_id: str, body: SourcePatch) -> dict:
+    state = request.app.state
+    if state.store.raw(source_id) is None:
+        raise HTTPException(404, "Source not found")
+    state.store.update(source_id, private=body.private)
     return state.store.get(source_id)  # type: ignore[return-value]
