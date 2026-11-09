@@ -89,6 +89,57 @@ export function deleteSource(
   );
 }
 
+export interface Note {
+  id: string;
+  title: string;
+  content: string;
+}
+
+function jsonInit(method: string, body: unknown): RequestInit {
+  return {
+    method,
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  };
+}
+
+export function createNote(
+  title: string,
+  content: string,
+  baseUrl = API_URL,
+  fetcher: typeof fetch = fetch,
+) {
+  return request<Source>(
+    "/notes",
+    jsonInit("POST", { title, content }),
+    baseUrl,
+    fetcher,
+  );
+}
+
+export function updateNote(
+  id: string,
+  title: string,
+  content: string,
+  baseUrl = API_URL,
+  fetcher: typeof fetch = fetch,
+) {
+  return request<Source>(
+    `/notes/${id}`,
+    jsonInit("PUT", { title, content }),
+    baseUrl,
+    fetcher,
+  );
+}
+
+export function getNote(
+  id: string,
+  baseUrl = API_URL,
+  fetcher: typeof fetch = fetch,
+) {
+  return request<Note>(`/notes/${id}`, undefined, baseUrl, fetcher);
+}
+
 export function retrySource(
   id: string,
   baseUrl = API_URL,

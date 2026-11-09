@@ -12,6 +12,7 @@ from nexusrag.index import Index
 from nexusrag.jobs import JobRunner
 from nexusrag.pipeline import Pipeline
 from nexusrag.routes_chat import router as chat_router
+from nexusrag.routes_notes import router as notes_router
 from nexusrag.routes_sources import router as sources_router
 from nexusrag.sources import SourceStore
 
@@ -39,6 +40,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
     app.include_router(sources_router)
     app.include_router(chat_router)
+    app.include_router(notes_router)
 
     @app.get("/health")
     def health() -> dict:

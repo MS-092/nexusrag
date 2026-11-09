@@ -2,8 +2,10 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { ConfirmDelete } from "@/components/confirm-delete";
+import { NoteDialog } from "@/components/note-dialog";
 import { SourceDialog } from "@/components/source-dialog";
 import { SourceRow } from "@/components/source-row";
+import { Button } from "@/components/ui/button";
 import { UploadZone } from "@/components/upload-zone";
 import {
   deleteSource,
@@ -30,6 +32,7 @@ export function BrainView() {
   const [retrying, setRetrying] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [open, setOpen] = useState<string | null>(null);
+  const [noteId, setNoteId] = useState<string | null | undefined>(undefined);
   const [toDelete, setToDelete] = useState<Source | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
@@ -111,6 +114,11 @@ export function BrainView() {
   return (
     <div className="space-y-6">
       <UploadZone busy={uploading} onFiles={(f) => void onFiles(f)} />
+      <div className="flex justify-end">
+        <Button variant="outline" size="sm" onClick={() => setNoteId(null)}>
+          New note
+        </Button>
+      </div>
       {actionError ? (
         <p role="alert" className="text-sm text-red-500 dark:text-red-400">
           {actionError}
@@ -145,6 +153,7 @@ export function BrainView() {
                 retrying={retrying === s.id}
                 onOpen={(src) => setOpen(src.id)}
                 onRetry={(src) => void onRetry(src)}
+                onEdit={(src) => setNoteId(src.id)}
                 onDelete={(src) => {
                   setDeleteError(null);
                   setToDelete(src);
@@ -155,6 +164,11 @@ export function BrainView() {
         ) : null}
       </section>
       <SourceDialog sourceId={open} onClose={() => setOpen(null)} />
+      <NoteDialog
+        noteId={noteId}
+        onClose={() => setNoteId(undefined)}
+        onSaved={() => void refresh()}
+      />
       <ConfirmDelete
         name={toDelete?.name ?? null}
         busy={deleting}

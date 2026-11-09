@@ -1,9 +1,12 @@
 import { describe, expect, test } from "bun:test";
 import {
   askBrain,
+  createNote,
   deleteSource,
+  getNote,
   listSources,
   retrySource,
+  updateNote,
   uploadSource,
   type Source,
 } from "./api";
@@ -166,5 +169,58 @@ describe("deleteSource", () => {
     await expect(deleteSource("nope", "http://api.test", f)).rejects.toThrow(
       "Source not found",
     );
+  });
+});
+
+describe("notes", () => {
+  test("createNote posts title and content as JSON", async () => {
+    const seen: { url?: string; method?: string; body?: string } = {};
+    const f = (async (u: string, init?: RequestInit) => {
+      seen.url = u;
+      seen.method = init?.method;
+      seen.body = init?.body as string;
+      return json({ ...source, kind: "note", name: "Plan" }, 202);
+    }) as unknown as typeof fetch;
+    const result = await createNote("Plan", "# Plan", "http://api.test", f);
+    expect(result.kind).toBe("note");
+    expect(seen.url).toBe("http://api.test/notes");
+    expect(seen.method).toBe("POST");
+    expect(JSON.parse(seen.body ?? "{}")).toEqual({
+      title: "Plan",
+      content: "# Plan",
+    });
+  });
+
+  test("updateNote puts to the note endpoint", async () => {
+    const seen: { url?: string; method?: string } = {};
+    const f = (async (u: string, init?: RequestInit) => {
+      seen.url = u;
+      seen.method = init?.method;
+      return json(source, 202);
+    }) as unknown as typeof fetch;
+    await updateNote("n1", "Plan", "x", "http://api.test", f);
+    expect(seen).toEqual({ url: "http://api.test/notes/n1", method: "PUT" });
+  });
+
+  test("getNote returns the raw markdown", async () => {
+    const f = (async () =>
+      json({
+        id: "n1",
+        title: "Plan",
+        content: "# Plan",
+      })) as unknown as typeof fetch;
+    expect(await getNote("n1", "http://api.test", f)).toEqual({
+      id: "n1",
+      title: "Plan",
+      content: "# Plan",
+    });
+  });
+
+  test("validation errors from the API are readable", async () => {
+    const f = (async () =>
+      json({ detail: "Note not found" }, 404)) as unknown as typeof fetch;
+    await expect(
+      updateNote("x", "t", "c", "http://api.test", f),
+    ).rejects.toThrow("Note not found");
   });
 });

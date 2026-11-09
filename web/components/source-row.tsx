@@ -11,6 +11,7 @@ interface SourceRowProps {
   onOpen: (source: Source) => void;
   onRetry: (source: Source) => void;
   onDelete: (source: Source) => void;
+  onEdit: (source: Source) => void;
 }
 
 export function SourceRow({
@@ -19,6 +20,7 @@ export function SourceRow({
   onOpen,
   onRetry,
   onDelete,
+  onEdit,
 }: SourceRowProps) {
   return (
     <li className="flex items-center gap-3 rounded-xl border border-border px-4 py-3">
@@ -71,6 +73,17 @@ export function SourceRow({
           className="motion-safe:active:scale-[0.97] motion-safe:transition-transform"
         >
           {retrying ? "Retrying…" : "Retry"}
+        </Button>
+      ) : null}
+      {source.kind === "note" ? (
+        <Button
+          size="sm"
+          variant="ghost"
+          aria-label={`Edit ${source.name}`}
+          onClick={() => onEdit(source)}
+          className="motion-safe:active:scale-[0.97] motion-safe:transition-transform"
+        >
+          Edit
         </Button>
       ) : null}
       <Button
