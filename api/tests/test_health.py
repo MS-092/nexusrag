@@ -22,3 +22,15 @@ def test_cors_allows_only_local_web_origin(client):
 def test_cors_is_never_wildcard(client):
     res = client.get("/health", headers={"Origin": "http://localhost:3000"})
     assert res.headers.get("access-control-allow-origin") != "*"
+
+
+def test_health_reflects_embedder_and_index_after_an_ingest(client, app):
+    from tests.helpers import make_pdf, upload
+
+    before = client.get("/health").json()
+    assert before["index"]["status"] == "ok"
+    upload(client, "a.pdf", make_pdf(["Hello health check"]))
+    app.state.jobs.join()
+    after = client.get("/health").json()
+    assert after["embedder"]["status"] == "ready"
+    assert after["status"] == "ok"

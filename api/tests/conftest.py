@@ -8,6 +8,14 @@ from nexusrag.main import create_app
 from tests.fake_provider import FakeProvider
 
 
+@pytest.fixture(scope="session", autouse=True)
+def _warm_embedder():
+    """Load the local models once so first-run downloads never race a job."""
+    from nexusrag.embedder import get_embedder
+
+    get_embedder().embed_documents(["warm up"])
+
+
 @pytest.fixture
 def data_dir(tmp_path):
     return tmp_path / "data"

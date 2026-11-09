@@ -16,6 +16,7 @@ def _default_data_dir() -> Path:
 class Settings:
     data_dir: Path
     web_origin: str = DEFAULT_WEB_ORIGIN
+    max_upload_bytes: int = 50 * 1024 * 1024
 
     @classmethod
     def from_env(cls) -> "Settings":

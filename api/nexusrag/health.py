@@ -14,12 +14,23 @@ def storage_status(data_dir: Path) -> dict:
         return {"status": "error", "detail": exc.strerror or "storage not writable"}
 
 
-def health_report(data_dir: Path) -> dict:
+def health_report(data_dir: Path, embedder=None, index=None) -> dict:
     storage = storage_status(data_dir)
+    index_status = {"status": "not_initialized"}
+    if index is not None:
+        try:
+            index.client.collection_exists("brain")
+            index_status = {"status": "ok"}
+        except Exception as exc:  # noqa: BLE001 - report, don't crash health
+            index_status = {"status": "error", "detail": type(exc).__name__}
+    embedder_status = {"status": "not_initialized"}
+    if embedder is not None:
+        # Models load lazily on first use, so "not_loaded" is normal at startup.
+        embedder_status = {"status": "ready" if embedder.loaded else "not_loaded"}
+    ok = storage["status"] == "ok" and index_status["status"] in ("ok", "not_initialized")
     return {
-        "status": "ok" if storage["status"] == "ok" else "degraded",
-        # Reported honestly: these components arrive in later tickets.
-        "embedder": {"status": "not_initialized"},
-        "index": {"status": "not_initialized"},
+        "status": "ok" if ok else "degraded",
+        "embedder": embedder_status,
+        "index": index_status,
         "storage": storage,
     }
