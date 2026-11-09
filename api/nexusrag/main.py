@@ -16,8 +16,10 @@ from nexusrag.pipeline import Pipeline
 from nexusrag.routes_activity import router as activity_router
 from nexusrag.routes_chat import router as chat_router
 from nexusrag.routes_notebooks import router as notebooks_router
+from nexusrag.routes_skills import router as skills_router
 from nexusrag.routes_notes import router as notes_router
 from nexusrag.routes_sources import router as sources_router
+from nexusrag.skill_runner import SkillRunner
 from nexusrag.sources import SourceStore
 
 
@@ -37,6 +39,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         app.state.store, app.state.index, app.state.embedder, app.state.activity, app.state.notebooks
     )
     app.state.answerer = Answerer(app.state.store, app.state.index, app.state.embedder)
+    app.state.skills = SkillRunner(app.state.store, app.state.answerer)
 
     # Single user, single machine: only the local web app may call this API.
     app.add_middleware(
@@ -51,6 +54,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(notes_router)
     app.include_router(notebooks_router)
     app.include_router(activity_router)
+    app.include_router(skills_router)
 
     @app.get("/health")
     def health() -> dict:

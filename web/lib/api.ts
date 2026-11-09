@@ -1,4 +1,5 @@
 import { API_URL } from "@/lib/health";
+import type { SkillInfo } from "@/lib/skills";
 import type { ActivityEvent } from "@/lib/activity";
 import type { Reason, Rule } from "@/lib/notebooks";
 import {
@@ -205,6 +206,7 @@ export interface ChatResult {
   answer: string;
   mode: "model" | "extractive" | "no_results";
   citations: Citation[];
+  skill?: string;
 }
 
 export type ChatScope = { type: "brain" } | { type: "notebook"; id: string };
@@ -364,4 +366,8 @@ export function listActivity(
     baseUrl,
     fetcher,
   );
+}
+
+export function listSkills(baseUrl = API_URL, fetcher: typeof fetch = fetch) {
+  return request<SkillInfo[]>("/skills", undefined, baseUrl, fetcher);
 }

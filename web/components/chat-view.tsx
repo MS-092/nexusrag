@@ -6,10 +6,12 @@ import { Button } from "@/components/ui/button";
 import {
   askBrain,
   listNotebooks,
+  listSkills,
   type ChatResult,
   type ChatScope,
   type NotebookSummary,
 } from "@/lib/api";
+import { matchingSkills, type SkillInfo } from "@/lib/skills";
 import { positionLabel } from "@/lib/sources";
 import { useSettings } from "@/lib/use-settings";
 
@@ -50,6 +52,7 @@ export function ChatView() {
   const [pending, setPending] = useState(false);
   const [notebooks, setNotebooks] = useState<NotebookSummary[]>([]);
   const [scopeId, setScopeId] = useState("brain");
+  const [skills, setSkills] = useState<SkillInfo[]>([]);
 
   useEffect(() => {
     let cancelled = false;
@@ -59,6 +62,13 @@ export function ChatView() {
       })
       .catch(() => {
         // the switcher just stays on "Whole Brain" if notebooks cannot load
+      });
+    listSkills()
+      .then((rows) => {
+        if (!cancelled) setSkills(rows);
+      })
+      .catch(() => {
+        // chat still works without the skill list
       });
     return () => {
       cancelled = true;
@@ -134,6 +144,11 @@ export function ChatView() {
               ) : t.result ? (
                 <div className="rounded-xl border border-border p-4 text-sm">
                   <p className="whitespace-pre-wrap">{t.result.answer}</p>
+                  {t.result.skill ? (
+                    <Badge variant="outline" className="mb-3 mr-2 font-mono">
+                      /{t.result.skill}
+                    </Badge>
+                  ) : null}
                   {t.result.mode === "extractive" ? (
                     <Badge variant="secondary" className="mt-3">
                       Offline answer
@@ -148,6 +163,25 @@ export function ChatView() {
           ))}
         </ol>
       )}
+      {skills.length > 0 ? (
+        <div className="flex flex-wrap items-center gap-2 text-xs">
+          <span className="text-muted-foreground">Skills</span>
+          {(matchingSkills(text, skills).length > 0
+            ? matchingSkills(text, skills)
+            : skills
+          ).map((s) => (
+            <button
+              key={s.name}
+              type="button"
+              title={`${s.description} Usage: ${s.usage}`}
+              onClick={() => setText(`/${s.name} `)}
+              className="rounded-md bg-muted px-2 py-1 font-mono motion-safe:transition-transform motion-safe:active:scale-[0.97]"
+            >
+              /{s.name}
+            </button>
+          ))}
+        </div>
+      ) : null}
       <form
         className="flex gap-2"
         onSubmit={(e) => {

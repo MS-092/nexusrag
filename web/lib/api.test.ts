@@ -9,6 +9,7 @@ import {
   getNote,
   listActivity,
   listNotebooks,
+  listSkills,
   listSources,
   pinSource,
   retrySource,
@@ -422,5 +423,20 @@ describe("activity", () => {
     expect(url).toBe("http://api.test/activity?notebook_id=n1");
     await listActivity(undefined, "http://api.test", f);
     expect(url).toBe("http://api.test/activity");
+  });
+});
+
+describe("skills", () => {
+  test("listSkills returns name, description and usage", async () => {
+    const skills = [
+      { name: "summarize", description: "Summarize.", usage: "/summarize [x]" },
+    ];
+    let url = "";
+    const f = (async (u: string) => {
+      url = u;
+      return json(skills);
+    }) as unknown as typeof fetch;
+    expect(await listSkills("http://api.test", f)).toEqual(skills);
+    expect(url).toBe("http://api.test/skills");
   });
 });
