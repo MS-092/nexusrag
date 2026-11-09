@@ -1,4 +1,5 @@
 import { API_URL } from "@/lib/health";
+import type { SavedConversation } from "@/lib/chat";
 import type { SkillInfo } from "@/lib/skills";
 import type { ActivityEvent } from "@/lib/activity";
 import type { Reason, Rule } from "@/lib/notebooks";
@@ -207,6 +208,7 @@ export interface ChatResult {
   mode: "model" | "extractive" | "no_results";
   citations: Citation[];
   skill?: string;
+  conversation_id?: string;
 }
 
 export type ChatScope = { type: "brain" } | { type: "notebook"; id: string };
@@ -217,6 +219,7 @@ export function askBrain(
   baseUrl = API_URL,
   fetcher: typeof fetch = fetch,
   scope?: ChatScope,
+  conversationId?: string,
 ) {
   return request<ChatResult>(
     "/chat",
@@ -226,7 +229,11 @@ export function askBrain(
         "Content-Type": "application/json",
         ...providerHeaders(settings),
       },
-      body: JSON.stringify(scope ? { question, scope } : { question }),
+      body: JSON.stringify({
+        question,
+        ...(scope ? { scope } : {}),
+        ...(conversationId ? { conversation_id: conversationId } : {}),
+      }),
     },
     baseUrl,
     fetcher,
@@ -370,4 +377,55 @@ export function listActivity(
 
 export function listSkills(baseUrl = API_URL, fetcher: typeof fetch = fetch) {
   return request<SkillInfo[]>("/skills", undefined, baseUrl, fetcher);
+}
+
+export interface ConversationSummary {
+  id: string;
+  title: string;
+  scope: { type: "brain" | "notebook"; id: string | null };
+  message_count: number;
+  updated_at: string;
+}
+
+export function listConversations(
+  scope: ChatScope,
+  baseUrl = API_URL,
+  fetcher: typeof fetch = fetch,
+) {
+  const query =
+    scope.type === "notebook"
+      ? `?scope=notebook&notebook_id=${encodeURIComponent(scope.id)}`
+      : "?scope=brain";
+  return request<ConversationSummary[]>(
+    `/conversations${query}`,
+    undefined,
+    baseUrl,
+    fetcher,
+  );
+}
+
+export function getConversation(
+  id: string,
+  baseUrl = API_URL,
+  fetcher: typeof fetch = fetch,
+) {
+  return request<SavedConversation>(
+    `/conversations/${id}`,
+    undefined,
+    baseUrl,
+    fetcher,
+  );
+}
+
+export function deleteConversation(
+  id: string,
+  baseUrl = API_URL,
+  fetcher: typeof fetch = fetch,
+) {
+  return request<void>(
+    `/conversations/${id}`,
+    { method: "DELETE" },
+    baseUrl,
+    fetcher,
+  );
 }

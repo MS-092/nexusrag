@@ -7,6 +7,7 @@ from nexusrag.config import Settings
 from nexusrag.health import health_report
 from nexusrag.activity import ActivityLog
 from nexusrag.answerer import Answerer
+from nexusrag.conversations import ConversationStore
 from nexusrag.db import Database
 from nexusrag.embedder import get_embedder
 from nexusrag.index import Index
@@ -15,6 +16,7 @@ from nexusrag.notebooks import NotebookStore
 from nexusrag.pipeline import Pipeline
 from nexusrag.routes_activity import router as activity_router
 from nexusrag.routes_chat import router as chat_router
+from nexusrag.routes_conversations import router as conversations_router
 from nexusrag.routes_notebooks import router as notebooks_router
 from nexusrag.routes_skills import router as skills_router
 from nexusrag.routes_notes import router as notes_router
@@ -35,6 +37,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.state.embedder = get_embedder()
     app.state.index = Index(settings.data_dir / "qdrant")
     app.state.activity = ActivityLog(app.state.db)
+    app.state.conversations = ConversationStore(app.state.db, app.state.store)
     app.state.pipeline = Pipeline(
         app.state.store, app.state.index, app.state.embedder, app.state.activity, app.state.notebooks
     )
@@ -55,6 +58,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(notebooks_router)
     app.include_router(activity_router)
     app.include_router(skills_router)
+    app.include_router(conversations_router)
 
     @app.get("/health")
     def health() -> dict:

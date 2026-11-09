@@ -4,10 +4,13 @@ import {
   captionSource,
   createNotebook,
   createNote,
+  deleteConversation,
   deleteNotebook,
   deleteSource,
+  getConversation,
   getNote,
   listActivity,
+  listConversations,
   listNotebooks,
   listSkills,
   listSources,
@@ -438,5 +441,68 @@ describe("skills", () => {
     }) as unknown as typeof fetch;
     expect(await listSkills("http://api.test", f)).toEqual(skills);
     expect(url).toBe("http://api.test/skills");
+  });
+});
+
+describe("conversations", () => {
+  test("listConversations filters by scope", async () => {
+    const urls: string[] = [];
+    const f = (async (u: string) => {
+      urls.push(u);
+      return json([]);
+    }) as unknown as typeof fetch;
+    await listConversations({ type: "brain" }, "http://api.test", f);
+    await listConversations(
+      { type: "notebook", id: "n1" },
+      "http://api.test",
+      f,
+    );
+    expect(urls).toEqual([
+      "http://api.test/conversations?scope=brain",
+      "http://api.test/conversations?scope=notebook&notebook_id=n1",
+    ]);
+  });
+
+  test("getConversation and deleteConversation use the conversation endpoint", async () => {
+    const calls: { url: string; method?: string }[] = [];
+    const f = (async (u: string, init?: RequestInit) => {
+      calls.push({ url: u, method: init?.method });
+      return init?.method === "DELETE"
+        ? new Response(null, { status: 204 })
+        : json({
+            id: "c1",
+            title: "t",
+            scope: { type: "brain", id: null },
+            messages: [],
+          });
+    }) as unknown as typeof fetch;
+    await getConversation("c1", "http://api.test", f);
+    await deleteConversation("c1", "http://api.test", f);
+    expect(calls).toEqual([
+      { url: "http://api.test/conversations/c1", method: undefined },
+      { url: "http://api.test/conversations/c1", method: "DELETE" },
+    ]);
+  });
+
+  test("askBrain sends the conversation id for follow-ups", async () => {
+    let body = "";
+    const f = (async (_u: string, init?: RequestInit) => {
+      body = init?.body as string;
+      return json({
+        answer: "x",
+        mode: "extractive",
+        citations: [],
+        conversation_id: "c1",
+      });
+    }) as unknown as typeof fetch;
+    await askBrain(
+      "q",
+      DEFAULT_SETTINGS,
+      "http://api.test",
+      f,
+      undefined,
+      "c1",
+    );
+    expect(JSON.parse(body)).toEqual({ question: "q", conversation_id: "c1" });
   });
 });
