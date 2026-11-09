@@ -38,3 +38,6 @@ next-env.d.ts
 .DS_Store
 .idea/
 .vscode/
+
+# local Claude Code permissions (personal, never published)
+.claude/settings.local.json
