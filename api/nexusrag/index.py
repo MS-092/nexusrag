@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import threading
 import uuid
 from pathlib import Path
 from typing import Any
@@ -13,17 +14,23 @@ COLLECTION = "brain"
 
 class Index:
     """One Qdrant collection holding dense + sparse vectors per chunk.
-    Hybrid retrieval fuses both legs with reciprocal rank fusion."""
+    Hybrid retrieval fuses both legs with reciprocal rank fusion.
+
+    Local Qdrant persists through one SQLite connection. Job workers and
+    request handlers share it, so every call takes the same lock.
+    """
 
     def __init__(self, path: Path) -> None:
         path.mkdir(parents=True, exist_ok=True)
+        self._lock = threading.RLock()
         self.client = QdrantClient(path=str(path))
-        if not self.client.collection_exists(COLLECTION):
-            self.client.create_collection(
-                COLLECTION,
-                vectors_config={"dense": models.VectorParams(size=DENSE_DIM, distance=models.Distance.COSINE)},
-                sparse_vectors_config={"sparse": models.SparseVectorParams(modifier=models.Modifier.IDF)},
-            )
+        with self._lock:
+            if not self.client.collection_exists(COLLECTION):
+                self.client.create_collection(
+                    COLLECTION,
+                    vectors_config={"dense": models.VectorParams(size=DENSE_DIM, distance=models.Distance.COSINE)},
+                    sparse_vectors_config={"sparse": models.SparseVectorParams(modifier=models.Modifier.IDF)},
+                )
 
     def upsert(self, source_id: str, chunks: list[dict], dense: list[list[float]], sparse: list[SparseVec]) -> None:
         points = [
@@ -43,17 +50,24 @@ class Index:
             for i, (c, d, s) in enumerate(zip(chunks, dense, sparse))
         ]
         if points:
-            self.client.upsert(COLLECTION, points=points, wait=True)
+            with self._lock:
+                self.client.upsert(COLLECTION, points=points, wait=True)
 
     def delete_source(self, source_id: str) -> None:
-        self.client.delete(
-            COLLECTION,
-            points_selector=models.FilterSelector(filter=_source_filter({source_id})),
-            wait=True,
-        )
+        with self._lock:
+            self.client.delete(
+                COLLECTION,
+                points_selector=models.FilterSelector(filter=_source_filter({source_id})),
+                wait=True,
+            )
 
     def count_source(self, source_id: str) -> int:
-        return self.client.count(COLLECTION, count_filter=_source_filter({source_id}), exact=True).count
+        with self._lock:
+            return self.client.count(COLLECTION, count_filter=_source_filter({source_id}), exact=True).count
+
+    def ready(self) -> bool:
+        with self._lock:
+            return self.client.collection_exists(COLLECTION)
 
     def search(
         self,
@@ -66,26 +80,28 @@ class Index:
         if source_ids is not None and not source_ids:
             return []
         flt = _source_filter(source_ids) if source_ids is not None else None
-        result = self.client.query_points(
-            COLLECTION,
-            prefetch=[
-                models.Prefetch(query=dense, using="dense", limit=20, filter=flt),
-                models.Prefetch(
-                    query=models.SparseVector(indices=sparse.indices, values=sparse.values),
-                    using="sparse",
-                    limit=20,
-                    filter=flt,
-                ),
-            ],
-            query=models.FusionQuery(fusion=models.Fusion.RRF),
-            limit=k,
-            with_payload=True,
-            with_vectors=["dense"],
-        )
+        with self._lock:
+            result = self.client.query_points(
+                COLLECTION,
+                prefetch=[
+                    models.Prefetch(query=dense, using="dense", limit=20, filter=flt),
+                    models.Prefetch(
+                        query=models.SparseVector(indices=sparse.indices, values=sparse.values),
+                        using="sparse",
+                        limit=20,
+                        filter=flt,
+                    ),
+                ],
+                query=models.FusionQuery(fusion=models.Fusion.RRF),
+                limit=k,
+                with_payload=True,
+                with_vectors=["dense"],
+            )
         return [{"score": p.score, "vector": p.vector["dense"], **p.payload} for p in result.points]
 
     def close(self) -> None:
-        self.client.close()
+        with self._lock:
+            self.client.close()
 
 
 def _source_filter(source_ids: set[str]) -> models.Filter:

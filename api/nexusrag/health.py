@@ -19,7 +19,7 @@ def health_report(data_dir: Path, embedder=None, index=None) -> dict:
     index_status = {"status": "not_initialized"}
     if index is not None:
         try:
-            index.client.collection_exists("brain")
+            index.ready()
             index_status = {"status": "ok"}
         except Exception as exc:  # noqa: BLE001 - report, don't crash health
             index_status = {"status": "error", "detail": type(exc).__name__}
