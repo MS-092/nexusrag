@@ -39,7 +39,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         app.state.store, app.state.index, app.state.embedder, app.state.activity, app.state.notebooks
     )
     app.state.answerer = Answerer(app.state.store, app.state.index, app.state.embedder)
-    app.state.skills = SkillRunner(app.state.store, app.state.answerer)
+    app.state.skills = SkillRunner(app.state.store, app.state.answerer, app.state.notebooks, app.state.activity)
 
     # Single user, single machine: only the local web app may call this API.
     app.add_middleware(

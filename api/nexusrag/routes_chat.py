@@ -36,7 +36,8 @@ def chat(request: Request, body: ChatRequest) -> dict:
         if skill is None:
             available = ", ".join(f"/{n}" for n in sorted(skills)) or "none installed"
             raise HTTPException(400, f"Unknown skill /{name}. Available: {available}.")
-        ids = resolve_scope(state.store, state.notebooks, body.scope)
+        # /status always covers the whole Brain, so it ignores the chat Scope.
+        ids = set() if skill.name == "status" else resolve_scope(state.store, state.notebooks, body.scope)
         try:
             return state.skills.run(skill, arg, ids, config)
         except ProviderError as exc:
